@@ -26,7 +26,7 @@ jobs:
           cache-version: 1
           extra-packages: |
             github::PacificCommunity/ofp-sam-flr4mfcl@ff8367fcec19baff98333170c0f1bca3f9903029
-            github::PacificCommunity/mfclshiny@67a4dbafd170405e9d54383ef07b1e7790639da9
+            github::PacificCommunity/mfclshiny@ada7dd0b08380cf000c93a3d127cf1bf0193bfbe
           needs: website
 
       - name: Validate and render
