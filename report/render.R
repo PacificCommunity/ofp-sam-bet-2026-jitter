@@ -1,6 +1,6 @@
 options(stringsAsFactors = FALSE)
 
-required_packages <- c("ggplot2", "dplyr", "scales", "jsonlite")
+required_packages <- c("ggplot2", "dplyr", "scales", "jsonlite", "patchwork")
 missing_packages <- required_packages[
   !vapply(required_packages, requireNamespace, logical(1), quietly = TRUE)
 ]
@@ -119,7 +119,8 @@ diagnostic_plot <- ggplot2::ggplot(
   ggplot2::theme(legend.position = "none")
 save_plot(diagnostic_plot, "jitter-diagnostics-diagnostic-model", 7.2, 5.2)
 
-# Four core annual trajectories.
+# Four core annual trajectories.  Keep the native four-panel presentation: each
+# panel carries its own quantity-specific unit, as in the original report.
 derived$quantity <- factor(
   derived$quantity,
   levels = c("Depletion", "Fishing mortality", "Recruitment", "Spawning potential")
@@ -131,33 +132,31 @@ derived_individual <- derived[
 ]
 derived_reference <- derived[derived$is_reference %in% TRUE, , drop = FALSE]
 derived_summary <- quantile_summary(derived)
-derived_plot <- ggplot2::ggplot() +
-  ggplot2::geom_ribbon(
-    data = derived_summary,
-    ggplot2::aes(x = .data$year, ymin = .data$lower, ymax = .data$upper, fill = "Central 80% jitter interval"),
-    alpha = 0.48, colour = NA
-  ) +
-  ggplot2::geom_line(
-    data = derived_individual,
-    ggplot2::aes(x = .data$year, y = .data$value, group = interaction(.data$quantity, .data$run), colour = "Included jitter fit"),
-    linewidth = 0.32, alpha = 0.38
-  ) +
-  ggplot2::geom_line(
-    data = derived_summary,
-    ggplot2::aes(x = .data$year, y = .data$median, colour = "Jitter median"),
-    linewidth = 0.95
-  ) +
-  ggplot2::geom_line(
-    data = derived_reference,
-    ggplot2::aes(x = .data$year, y = .data$value, group = .data$quantity, colour = "Diagnostic model (unjittered)"),
-    linewidth = 1.05
-  ) +
-  ggplot2::facet_wrap(~quantity, scales = "free_y", ncol = 2) +
-  ggplot2::scale_colour_manual(values = line_colours, breaks = names(line_colours)[c(1, 3, 4)]) +
-  ggplot2::scale_fill_manual(values = line_colours["Central 80% jitter interval"]) +
-  ggplot2::scale_y_continuous(limits = function(x) c(0, max(x, na.rm = TRUE) * 1.04), expand = ggplot2::expansion(mult = c(0, 0.02))) +
-  ggplot2::labs(x = "Year", y = NULL) +
-  theme_report(11.5)
+derived_units <- list(
+  "Depletion" = bquote(SB/SB[F==0]),
+  "Fishing mortality" = bquote(F~(year^{-1})),
+  "Recruitment" = "Recruitment (millions)",
+  "Spawning potential" = bquote(Spawning~potential~(10^3~MT))
+)
+derived_plot_one <- function(quantity) {
+  ind <- derived_individual[derived_individual$quantity == quantity, , drop = FALSE]
+  ref <- derived_reference[derived_reference$quantity == quantity, , drop = FALSE]
+  sm <- derived_summary[derived_summary$quantity == quantity, , drop = FALSE]
+  p <- ggplot2::ggplot() +
+    ggplot2::geom_ribbon(data = sm, ggplot2::aes(x = .data$year, ymin = .data$lower, ymax = .data$upper, fill = "Central 80% jitter interval"), alpha = 0.48, colour = NA) +
+    ggplot2::geom_line(data = ind, ggplot2::aes(x = .data$year, y = .data$value, group = .data$run, colour = "Included jitter fit"), linewidth = 0.32, alpha = 0.38) +
+    ggplot2::geom_line(data = sm, ggplot2::aes(x = .data$year, y = .data$median, colour = "Jitter median"), linewidth = 0.95) +
+    ggplot2::geom_line(data = ref, ggplot2::aes(x = .data$year, y = .data$value, colour = "Diagnostic model (unjittered)"), linewidth = 1.05) +
+    ggplot2::scale_colour_manual(values = line_colours, breaks = names(line_colours)[c(1, 3, 4)]) +
+    ggplot2::scale_fill_manual(values = line_colours["Central 80% jitter interval"]) +
+    ggplot2::scale_y_continuous(limits = function(x) c(0, max(x, na.rm = TRUE) * 1.04), expand = ggplot2::expansion(mult = c(0, 0.02))) +
+    ggplot2::labs(x = "Year", y = derived_units[[quantity]]) + theme_report(11.2) +
+    ggplot2::theme(legend.position = "bottom")
+  if (quantity == "Depletion") p <- p + ggplot2::geom_hline(yintercept = 0.2, colour = "#B64040", linetype = "dashed", linewidth = 0.55)
+  p
+}
+derived_plot <- patchwork::wrap_plots(lapply(levels(derived$quantity), derived_plot_one), ncol = 2, guides = "collect") &
+  ggplot2::theme(legend.position = "bottom")
 save_plot(derived_plot, "jitter-derived-diagnostic-model", 11, 6.2)
 
 # WCPFC BET stock-status trajectories and recent-period endpoint distributions.
@@ -380,26 +379,29 @@ figure_specs <- list(
   list(
     file = "jitter-diagnostics-diagnostic-model.png",
     caption = paste0(
-      "Objective function value and maximum gradient component for the 25 converged jitter fits. ",
-      "The red diamond is the Diagnostic model without jitter. Five of the 30 completed jitter runs did not meet ",
-      "the convergence criterion MGC ≤ 1.0 × 10⁻⁴ and are not shown."
+      "Jitter convergence diagnostics for the Diagnostic model. Each point represents one jitter run. ",
+      "The red diamond identifies the Diagnostic model without jitter; convergence was assessed using ",
+      "MGC ≤ 1.0 × 10⁻⁴. Lower objective-function values indicate improved fit. Five completed runs did not meet ",
+      "the convergence criterion and are not shown."
     )
   ),
   list(
     file = "jitter-derived-diagnostic-model.png",
     caption = paste0(
-      "Annual depletion, fishing mortality, recruitment and spawning potential for converged jitter fits. ",
-      "Grey-blue lines are individual fits, the shaded band is the pointwise central 80% jitter interval, ",
-      "the dark line is the jitter median and the red line is the Diagnostic model without jitter."
+      "Annual derived quantities across the 25 retained jitter fits. Thin grey-blue lines are individual fits, ",
+      "the shaded band is the pointwise central 80% interval (10th–90th percentiles), the dark line is the jitter median, ",
+      "and the red line is the Diagnostic model without jitter. Depletion is S B/S B<sub>F=0</sub>; fishing mortality is ",
+      "the annual instantaneous rate; recruitment is in millions of fish; and spawning potential is in 10<sup>3</sup> MT."
     )
   ),
   list(
     file = "jitter-stock-status-diagnostic-model.png",
     caption = paste0(
-      "Annual stock-status trajectories and recent-period distributions for the Diagnostic model jitter analysis. ",
-      "Recent boxes summarise the 25 converged fits; the red diamonds are the Diagnostic model without jitter. ",
-      "SBrecent uses 2021–2024, SBF=0 uses 2014–2023, and Frecent uses 2020–2023. ",
-      "The dashed line in the depletion panel marks the limit reference point."
+      "Annual stock-status trajectories across the 25 retained jitter fits. Thin grey-blue lines are individual fits, ",
+      "the dark line is their median, and the shaded band is the pointwise 10th–90th percentile range; the red line is the ",
+      "Diagnostic model without jitter. Recent boxes show the distributions of the management quantities ",
+      "S B<sub>recent</sub>/S B<sub>F=0</sub>, S B<sub>recent</sub>/S B<sub>MSY</sub> and F<sub>recent</sub>/F<sub>MSY</sub>. ",
+      "The depletion dashed line marks the limit reference point (LRP = 0.2); the MSY ratio line is 1.0."
     )
   ),
   list(
@@ -422,9 +424,13 @@ figure_specs <- list(
 
 figure_html <- paste(vapply(figure_specs, function(spec) {
   path <- file.path(figure_dir, spec$file)
+  id <- tools::file_path_sans_ext(spec$file)
   paste0(
-    "<figure class='paper-page'><img src='", image_uri(path), "' alt='", spec$file, "'>",
-    "<figcaption><b>Figure XX.</b> ", spec$caption, "</figcaption></figure>"
+    "<figure class='paper-page'><img id='fig-", id, "' src='", image_uri(path), "' alt='", spec$file, "'>",
+    "<figcaption id='cap-", id, "'><b>Figure <span contenteditable='true'>XX</span>.</b> ", spec$caption, "</figcaption>",
+    "<div class='buttons'><button onclick=\"copyFigure('fig-", id, "','cap-", id, "')\">Copy figure for Word</button>",
+    "<button onclick=\"saveImage('fig-", id, "','", spec$file, "')\">Save PNG</button>",
+    "<button onclick=\"copyCaption('cap-", id, "')\">Copy LaTeX caption</button></div></figure>"
   )
 }, character(1)), collapse = "\n")
 
@@ -446,18 +452,26 @@ html <- paste0(
   ".summary{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}.metric{background:#f2f7f8;border-left:5px solid #176c80;padding:16px}.metric b{font-size:25px;display:block}",
   "figure{margin:0}.paper-page{background:#fff;border:1px solid #cad8de;padding:18px 22px;margin:0 auto 28px;box-sizing:border-box}.paper-page img{width:100%;height:auto;display:block}.paper-page figcaption{font-family:Georgia,serif;font-size:14px;line-height:1.45;margin-top:12px;color:#263238}",
   "table{border-collapse:collapse;width:100%;font-family:Georgia,serif;font-size:14px}th,td{padding:7px 9px;border-bottom:1px solid #d5dfe3;text-align:right}th{background:#e8f1f4}th:first-child,td:first-child{text-align:center}",
-  ".buttons{display:flex;gap:10px;margin:0 0 14px}.buttons button{background:#176c80;color:white;border:0;padding:9px 13px;font-weight:700;cursor:pointer}",
+  ".buttons{display:flex;gap:10px;margin:14px 0}.buttons button{background:#176c80;color:white;border:0;padding:9px 13px;font-weight:700;cursor:pointer}.buttons button:hover{background:#103c56}.method-list{max-width:960px;line-height:1.6;font-family:Georgia,serif;color:#29495b}.method-list li{margin:.45rem 0}.copy-status{position:fixed;right:22px;bottom:22px;background:#103c56;color:#fff;padding:10px 14px;border-radius:3px;opacity:0;transition:opacity .15s;z-index:9}.copy-status.show{opacity:1}",
   "@media print{body{background:#fff}.tabs{display:none}header{background:#fff;color:#000;padding:0 0 10mm}.panel{display:block}.card{border:0}.paper-page{width:277mm;min-height:190mm;border:0;padding:8mm 10mm;page-break-after:always}.paper-page img{max-height:155mm;object-fit:contain}.paper-page figcaption{font-size:10pt}.summary{display:none}main{max-width:none;margin:0;padding:0}@page{size:A4 landscape;margin:10mm}}",
-  "</style></head><body><header><h1>Diagnostic model jitter</h1><p>Job 21641 · 30 completed runs · 25 converged</p></header>",
+  "</style></head><body><header><h1>Diagnostic model jitter</h1><p>Job 21641 · 30 completed runs · 25 retained at MGC ≤ 1.0 × 10⁻⁴</p></header><div id='copyStatus' class='copy-status'>Copied</div>",
   "<nav class='tabs'><button class='tab active' data-target='overview'>Overview</button><button class='tab' data-target='figures'>Figures and tables</button></nav><main>",
   "<section id='overview' class='panel active'><div class='summary'><div class='metric'><b>30</b>completed jitter runs</div><div class='metric'><b>25</b>MGC ≤ 1.0 × 10⁻⁴</div><div class='metric'><b>80%</b>pointwise 10th–90th interval</div></div>",
-  "<div class='card'><h2>Analysis</h2><p>The report uses the embedded public payload only; no MFCL fit is rerun. The 25 fits meeting the stated MGC criterion are used in all distributions. The unjittered Diagnostic model is shown in red.</p></div></section>",
+  "<div class='card'><h2>Jitter analysis</h2><ul class='method-list'>",
+  "<li><strong>Design.</strong> Starting values were randomly perturbed to test solution stability for the Diagnostic model. Thirty runs used CV = 0.1; only parameters estimated in the completed Diagnostic model were included.</li>",
+  "<li><strong>Fitting schedule.</strong> Perturbations were applied after Phase 1 to parameters already available and estimated. Parameters appearing for the first time in later phases were perturbed before optimisation. Each run then completed the same full phase schedule as the Diagnostic model without jitter.</li>",
+  "<li><strong>Perturbation scale.</strong> Positive parameters used mean-preserving proportional changes; unconstrained or near-zero parameters used additive normal changes on their parameter-family scale; bounded parameters remained within their bounds.</li>",
+  "<li><strong>Evaluation.</strong> The maximum gradient component (MGC) is the largest absolute objective-gradient component. Runs with MGC ≤ 1.0 × 10⁻⁴ were retained. Five completed runs failed this criterion and are excluded from the figures and derived-quantity comparisons.</li>",
+  "</ul><div class='buttons'><button onclick=\"copyText('analysisWord')\">Copy analysis for Word</button><button onclick=\"copyText('analysisLatex')\">Copy analysis for LaTeX</button></div>",
+  "<textarea id='analysisWord' hidden>Jitter analysis. Starting values were randomly perturbed to test solution stability for the Diagnostic model. Thirty runs used CV = 0.1; only parameters estimated in the completed Diagnostic model were included. Each run completed the same full phase schedule as the Diagnostic model without jitter. The maximum gradient component (MGC) is the largest absolute objective-gradient component. Runs with MGC ≤ 1.0 × 10⁻⁴ were retained; five completed runs failed this criterion.</textarea>",
+  "<textarea id='analysisLatex' hidden>\\paragraph{Jitter analysis.} Starting values were randomly perturbed to test solution stability for the Diagnostic model. Thirty runs used CV = 0.1. Each run completed the same full phase schedule as the Diagnostic model without jitter. Runs with MGC $\\leq 1.0 \\times 10^{-4}$ were retained; five completed runs failed this criterion.</textarea>",
+  "</div><div class='card'><h2>Results and interpretation</h2><p>Twenty-five of 30 runs met the convergence criterion. The lowest objective function value among retained runs was 89,469.7, 1,345.2 units lower than the Diagnostic model without jitter; ten retained runs improved on that fit. The minimum MGC was 5.84 × 10⁻⁵.</p><p>Multiple starting values diagnose sensitivity to local minima but do not by themselves identify a global minimum. Results should be considered together with convergence, fit to the data and other model diagnostics.</p><h3>References</h3><p>Carvalho, F. et al. (2021). A cookbook for using model diagnostics in integrated stock assessments. <em>Fisheries Research</em>, 240, 105959. <a href='https://doi.org/10.1016/j.fishres.2021.105959'>doi:10.1016/j.fishres.2021.105959</a></p><p>Subbey, S. (2018). Parameter estimation in stock assessment modelling: caveats with gradient-based algorithms. <em>ICES Journal of Marine Science</em>, 75, 1553–1559. <a href='https://doi.org/10.1093/icesjms/fsy044'>doi:10.1093/icesjms/fsy044</a><div class='buttons'><button onclick=\"copyText('bibtex')\">Copy references as BibTeX</button></div><textarea id='bibtex' hidden>@article{CarvalhoEtAl2021, author={Carvalho, F. and others}, year={2021}, title={A cookbook for using model diagnostics in integrated stock assessments}, journal={Fisheries Research}, volume={240}, pages={105959}, doi={10.1016/j.fishres.2021.105959}}\n@article{Subbey2018, author={Subbey, S.}, year={2018}, title={Parameter estimation in stock assessment modelling: caveats with gradient-based algorithms}, journal={ICES Journal of Marine Science}, volume={75}, pages={1553--1559}, doi={10.1093/icesjms/fsy044}}</textarea></div></div></section>",
   "<section id='figures' class='panel'>", figure_html,
   "<div class='card'><div class='buttons'><button onclick=\"copyText('wordData')\">Copy table for Word</button><button onclick=\"copyText('latexData')\">Copy LaTeX</button></div>",
   "<p><b>Table XX.</b> MFCL jitter results for the Diagnostic model. Of 30 jitter runs, 25 met the convergence criterion MGC ≤ 1.0 × 10⁻⁴. The Diagnostic model without jitter had an objective function value of 90,814.9 and an MGC of 9.68 × 10⁻⁵.</p>",
   "<table><thead><tr><th>Run</th><th>Objective function value</th><th>Δ objective</th><th>MGC</th></tr></thead><tbody>", table_rows_html, "</tbody></table>",
   "<textarea id='wordData' hidden>", word_table_text, "</textarea><textarea id='latexData' hidden>", latex_table, "</textarea></div></section></main>",
-  "<script>document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab,.panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById(b.dataset.target).classList.add('active')});function copyText(id){navigator.clipboard.writeText(document.getElementById(id).value)}</script>",
+  "<script>document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab,.panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById(b.dataset.target).classList.add('active')});function flash(){const s=document.getElementById('copyStatus');s.classList.add('show');setTimeout(()=>s.classList.remove('show'),1200)}function copyText(id){navigator.clipboard.writeText(document.getElementById(id).value).then(flash)}function copyFigure(id,cap){navigator.clipboard.writeText(document.getElementById(cap).innerText).then(flash)}function copyCaption(id){navigator.clipboard.writeText('\\\\caption{'+document.getElementById(id).innerText.replace(/^Figure XX\\.\\s*/,'')+'}').then(flash)}function saveImage(id,name){const a=document.createElement('a');a.href=document.getElementById(id).src;a.download=name;a.click();flash()}</script>",
   "</body></html>"
 )
 writeLines(html, file.path(output_dir, "jitter-report.html"), useBytes = TRUE)
