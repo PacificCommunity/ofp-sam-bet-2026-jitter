@@ -313,7 +313,8 @@ for (regional_quantity in names(regional_labels)) {
 
 # Public tables: one accepted-fit table with Word and LaTeX copy controls.
 accepted_table <- diag_plot_data[order(diag_plot_data$seed), c("seed", "obj_fun", "delta_obj", "max_grad")]
-names(accepted_table) <- c("Run", "Objective function value", "Delta objective", "MGC")
+accepted_table$seed <- seq_len(nrow(accepted_table))
+names(accepted_table) <- c("Accepted fit", "Objective function value", "Delta objective", "MGC")
 utils::write.csv(accepted_table, file.path(table_dir, "jitter-diagnostic-model.csv"), row.names = FALSE)
 utils::write.csv(regional, file.path(table_dir, "jitter-regional-timeseries.csv"), row.names = FALSE)
 utils::write.csv(stock_status, file.path(table_dir, "jitter-stock-status-timeseries.csv"), row.names = FALSE)
@@ -322,19 +323,19 @@ utils::write.csv(endpoints, file.path(table_dir, "jitter-stock-status-quantities
 format_num <- function(x, digits = 1) formatC(x, format = "f", digits = digits, big.mark = ",")
 format_mgc <- function(x) formatC(x, format = "e", digits = 2)
 table_rows_html <- paste0(
-  "<tr><td>", accepted_table$Run, "</td><td>", format_num(accepted_table[[2]]),
+  "<tr><td>", accepted_table[[1]], "</td><td>", format_num(accepted_table[[2]]),
   "</td><td>", format_num(accepted_table[[3]]), "</td><td>", format_mgc(accepted_table[[4]]),
   "</td></tr>", collapse = "\n"
 )
 latex_rows <- paste0(
-  accepted_table$Run, " & ", format_num(accepted_table[[2]]), " & ",
+  accepted_table[[1]], " & ", format_num(accepted_table[[2]]), " & ",
   format_num(accepted_table[[3]]), " & ", format_mgc(accepted_table[[4]]), " \\\\",
   collapse = "\n"
 )
 latex_table <- paste0(
   "\\begin{table}[htbp]\n\\centering\n\\caption{Jitter results for the Diagnostic model. Of 30 jitter runs, 25 met the convergence criterion $\\mathrm{MGC} \\leq 1.0 \\times 10^{-4}$. The unjittered Diagnostic model had an objective-function value of 90,814.9 and an MGC of $9.68 \\times 10^{-5}$.}\n",
   "\\label{tab:jitter-diagnostic-model}\n\\small\n\\setlength{\\tabcolsep}{7pt}\n\\renewcommand{\\arraystretch}{1.08}\n",
-  "\\begin{tabular}{rrrr}\n\\toprule\nRun & Objective function value & $\\Delta$ objective & MGC \\\\\n\\midrule\n",
+  "\\begin{tabular}{rrrr}\n\\toprule\nAccepted fit & Objective function value & $\\Delta$ objective & MGC \\\\\n\\midrule\n",
   latex_rows,
   "\n\\bottomrule\n\\end{tabular}\n\\end{table}\n"
 )
@@ -447,7 +448,7 @@ html <- paste0(
   "<section id='figures' class='panel'>", figure_html,
   "<div class='card'><div class='buttons'><button onclick=\"copyText('wordData')\">Copy table for Word</button><button onclick=\"copyText('latexData')\">Copy LaTeX</button></div>",
   "<p><b>Table XX.</b> Jitter results for the Diagnostic model. Of 30 jitter runs, 25 met the convergence criterion MGC ≤ 1.0 × 10⁻⁴. The unjittered Diagnostic model had an objective-function value of 90,814.9 and an MGC of 9.68 × 10⁻⁵.</p>",
-  "<table><thead><tr><th>Run</th><th>Objective function value</th><th>Δ objective</th><th>MGC</th></tr></thead><tbody>", table_rows_html, "</tbody></table>",
+  "<table><thead><tr><th>Accepted fit</th><th>Objective function value</th><th>Δ objective</th><th>MGC</th></tr></thead><tbody>", table_rows_html, "</tbody></table>",
   "<textarea id='wordData' hidden>", word_table_text, "</textarea><textarea id='latexData' hidden>", latex_table, "</textarea></div></section></main>",
   "<script>document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab,.panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById(b.dataset.target).classList.add('active')});function flash(){const s=document.getElementById('copyStatus');s.classList.add('show');setTimeout(()=>s.classList.remove('show'),1200)}function copyText(id){navigator.clipboard.writeText(document.getElementById(id).value).then(flash)}function copyFigure(id,cap){navigator.clipboard.writeText(document.getElementById(cap).innerText).then(flash)}function saveImage(id,name){const a=document.createElement('a');a.href=document.getElementById(id).src;a.download=name;a.click();flash()}</script>",
   "</body></html>"
