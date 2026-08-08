@@ -1,4 +1,12 @@
-results/
+results/*
+!results/jitter-report.html
+!results/figures/
+results/figures/*
+!results/figures/*.png
+!results/tables/
+results/tables/*
+!results/tables/*.csv
+!results/tables/*.tex
 results-*/
 data-original/
 .Rhistory

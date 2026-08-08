@@ -1,0 +1,4 @@
+"scenario","model_label","metric","quantity","unit","window","n","minimum","q25","median","q75","maximum","reference"
+"Diagnostic model","Diagnostic model","f_recent_fmsy","Frecent/FMSY","ratio","2020-2023",25,1.02364622786365,1.06643915964594,1.09974705817662,1.12258643915581,1.2385434728759,1.14364135407136
+"Diagnostic model","Diagnostic model","recent_depletion","SBrecent/SBF=0","ratio","2021-2024 / 2014-2023",25,0.167538150286742,0.177932847309906,0.185182706524608,0.190905347867672,0.207865301892017,0.173139314418813
+"Diagnostic model","Diagnostic model","sb_recent_sbmsy","SBrecent/SBMSY","ratio","2021-2024",25,0.943036822048919,1.06028053286659,1.09212738512461,1.11601274852725,1.17237514602804,1.0254953101072
