@@ -142,11 +142,13 @@ derived_plot_one <- function(quantity) {
   ind <- derived_individual[derived_individual$quantity == quantity, , drop = FALSE]
   ref <- derived_reference[derived_reference$quantity == quantity, , drop = FALSE]
   sm <- derived_summary[derived_summary$quantity == quantity, , drop = FALSE]
+  terminal <- sm[sm$year == max(sm$year, na.rm = TRUE), , drop = FALSE]
   p <- ggplot2::ggplot() +
     ggplot2::geom_ribbon(data = sm, ggplot2::aes(x = .data$year, ymin = .data$lower, ymax = .data$upper, fill = "Central 80% jitter interval"), alpha = 0.48, colour = NA) +
     ggplot2::geom_line(data = ind, ggplot2::aes(x = .data$year, y = .data$value, group = .data$run, colour = "Included jitter fit"), linewidth = 0.32, alpha = 0.38) +
     ggplot2::geom_line(data = sm, ggplot2::aes(x = .data$year, y = .data$median, colour = "Jitter median"), linewidth = 0.95) +
     ggplot2::geom_line(data = ref, ggplot2::aes(x = .data$year, y = .data$value, colour = "Diagnostic model (unjittered)"), linewidth = 1.05) +
+    ggplot2::geom_point(data = terminal, ggplot2::aes(x = .data$year, y = .data$median), colour = line_colours[["Jitter median"]], fill = line_colours[["Jitter median"]], shape = 21, size = 2.2, stroke = 0.35, show.legend = FALSE) +
     ggplot2::scale_colour_manual(values = line_colours, breaks = names(line_colours)[c(1, 3, 4)]) +
     ggplot2::scale_fill_manual(values = line_colours["Central 80% jitter interval"]) +
     ggplot2::scale_y_continuous(limits = function(x) c(0, max(x, na.rm = TRUE) * 1.04), expand = ggplot2::expansion(mult = c(0, 0.02))) +
@@ -363,11 +365,12 @@ figure_specs <- list(
     file = "jitter-derived-diagnostic-model.png",
     caption = paste0(
       "Annual derived quantities across the 25 retained jitter fits. Thin grey-blue lines are individual fits, ",
-      "the shaded band is the pointwise central 80% interval (10th–90th percentiles), the dark line is the jitter median, ",
+      "the shaded band is the pointwise central 80% interval (10th–90th percentiles), the dark line is the jitter median ",
+      "with its terminal value marked by a circle, ",
       "and the red line is the Diagnostic model without jitter. Depletion is S B/S B<sub>F=0</sub>; fishing mortality is ",
       "the annual instantaneous rate; recruitment is in millions of fish; and spawning potential is in 10<sup>3</sup> MT."
     ),
-    latex_caption = "Annual derived quantities across the 25 retained jitter fits. Thin grey-blue lines are individual fits, the shaded band is the pointwise central 80\\% interval (10th--90th percentiles), the dark line is the jitter median, and the red line is the unjittered Diagnostic model. Depletion is $SB/SB_{F=0}$; fishing mortality is the annual instantaneous rate; recruitment is in millions of fish; and spawning potential is in $10^3$ MT."
+    latex_caption = "Annual derived quantities across the 25 retained jitter fits. Thin grey-blue lines are individual fits, the shaded band is the pointwise central 80\\% interval (10th--90th percentiles), the dark line is the jitter median with its terminal value marked by a circle, and the red line is the unjittered Diagnostic model. Depletion is $SB/SB_{F=0}$; fishing mortality is the annual instantaneous rate; recruitment is in millions of fish; and spawning potential is in $10^3$ MT."
   ),
   list(
     file = "jitter-stock-status-diagnostic-model.png",
@@ -405,7 +408,7 @@ figure_html <- paste(vapply(figure_specs, function(spec) {
   id <- tools::file_path_sans_ext(spec$file)
   paste0(
     "<figure class='paper-page'><img id='fig-", id, "' src='", image_uri(path), "' alt='", spec$file, "'>",
-    "<figcaption id='cap-", id, "'><b>Figure <span contenteditable='true'>XX</span>.</b> ", spec$caption, "</figcaption>",
+    "<figcaption id='cap-", id, "'><b>Figure.</b> ", spec$caption, "</figcaption>",
     "<div class='buttons'><button onclick=\"copyFigure('fig-", id, "','cap-", id, "')\">Copy figure for Word</button>",
     "<button onclick=\"saveImage('fig-", id, "','", spec$file, "')\">Save PNG</button>",
     "<button onclick=\"copyText('latex-", id, "')\">Copy LaTeX caption</button></div>",
@@ -447,10 +450,10 @@ html <- paste0(
   "</div><div class='card'><h2>Results and interpretation</h2><p>Twenty-five of 30 runs met the convergence criterion. The lowest objective function value among retained runs was 89,469.7, 1,345.2 units lower than the Diagnostic model without jitter; ten retained runs improved on that fit. The minimum MGC was 5.84 × 10⁻⁵.</p><p>Multiple starting values diagnose sensitivity to local minima but do not by themselves identify a global minimum. Results should be considered together with convergence, fit to the data and other model diagnostics.</p><h3>References</h3><p>Carvalho, F. et al. (2021). A cookbook for using model diagnostics in integrated stock assessments. <em>Fisheries Research</em>, 240, 105959. <a href='https://doi.org/10.1016/j.fishres.2021.105959'>doi:10.1016/j.fishres.2021.105959</a></p><p>Subbey, S. (2018). Parameter estimation in stock assessment modelling: caveats with gradient-based algorithms. <em>ICES Journal of Marine Science</em>, 75, 1553–1559. <a href='https://doi.org/10.1093/icesjms/fsy044'>doi:10.1093/icesjms/fsy044</a><div class='buttons'><button onclick=\"copyText('bibtex')\">Copy references as BibTeX</button></div><textarea id='bibtex' hidden>@article{CarvalhoEtAl2021, author={Carvalho, F. and others}, year={2021}, title={A cookbook for using model diagnostics in integrated stock assessments}, journal={Fisheries Research}, volume={240}, pages={105959}, doi={10.1016/j.fishres.2021.105959}}\n@article{Subbey2018, author={Subbey, S.}, year={2018}, title={Parameter estimation in stock assessment modelling: caveats with gradient-based algorithms}, journal={ICES Journal of Marine Science}, volume={75}, pages={1553--1559}, doi={10.1093/icesjms/fsy044}}</textarea></div></div></section>",
   "<section id='figures' class='panel'>", figure_html,
   "<div class='card'><div class='buttons'><button onclick=\"copyText('wordData')\">Copy table for Word</button><button onclick=\"copyText('latexData')\">Copy LaTeX</button></div>",
-  "<p><b>Table XX.</b> Jitter results for the Diagnostic model. Of 30 jitter runs, 25 met the convergence criterion MGC ≤ 1.0 × 10⁻⁴. The unjittered Diagnostic model had an objective-function value of 90,814.9 and an MGC of 9.68 × 10⁻⁵.</p>",
+  "<p><b>Table.</b> Jitter results for the Diagnostic model. Of 30 jitter runs, 25 met the convergence criterion MGC ≤ 1.0 × 10⁻⁴. The unjittered Diagnostic model had an objective-function value of 90,814.9 and an MGC of 9.68 × 10⁻⁵.</p>",
   "<table><thead><tr><th>Accepted fit</th><th>Objective function value</th><th>Δ objective</th><th>MGC</th></tr></thead><tbody>", table_rows_html, "</tbody></table>",
   "<textarea id='wordData' hidden>", word_table_text, "</textarea><textarea id='latexData' hidden>", latex_table, "</textarea></div></section></main>",
-  "<script>document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab,.panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById(b.dataset.target).classList.add('active')});function flash(){const s=document.getElementById('copyStatus');s.classList.add('show');setTimeout(()=>s.classList.remove('show'),1200)}function copyText(id){navigator.clipboard.writeText(document.getElementById(id).value).then(flash)}function copyFigure(id,cap){navigator.clipboard.writeText(document.getElementById(cap).innerText).then(flash)}function saveImage(id,name){const a=document.createElement('a');a.href=document.getElementById(id).src;a.download=name;a.click();flash()}</script>",
+  "<script>document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab,.panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById(b.dataset.target).classList.add('active')});document.querySelectorAll('a[href^=\"http\"]').forEach(a=>{a.target='_blank';a.rel='noopener noreferrer'});function flash(){const s=document.getElementById('copyStatus');s.classList.add('show');setTimeout(()=>s.classList.remove('show'),1200)}function copyText(id){navigator.clipboard.writeText(document.getElementById(id).value).then(flash)}function copyFigure(id,cap){navigator.clipboard.writeText(document.getElementById(cap).innerText).then(flash)}function saveImage(id,name){const a=document.createElement('a');a.href=document.getElementById(id).src;a.download=name;a.click();flash()}</script>",
   "</body></html>"
 )
 writeLines(html, file.path(output_dir, "jitter-report.html"), useBytes = TRUE)
