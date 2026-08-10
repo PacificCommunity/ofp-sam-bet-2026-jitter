@@ -50,6 +50,7 @@ if (is.null(repo_arg) || is.null(output_arg)) usage(2L)
 
 repo <- normalizePath(repo_arg, winslash = "/", mustWork = TRUE)
 output <- normalizePath(output_arg, winslash = "/", mustWork = TRUE)
+source(file.path(repo, "scripts", "validate-embedded-selectivity.R"))
 if (identical(repo, output) || startsWith(paste0(output, "/"), paste0(repo, "/"))) {
   stop("The output directory must be outside the repository.", call. = FALSE)
 }
@@ -293,17 +294,20 @@ if (file.access(mfcl, mode = 1L) != 0L) {
   stop("The pinned MFCL executable is not executable.", call. = FALSE)
 }
 
-model_relative <- c(
+runtime_model_relative <- c(
   "bet.frq",
   "bet.ini",
   "bet.tag",
   "bet.age_length",
   "bet.reg_scaling",
   "mfcl.cfg",
-  "doitall.sh",
+  "doitall.sh"
+)
+documentation_reference_relative <- c(
   "model-inputs/S0.90-F2.conf",
   "selectivity-models/F2.csv"
 )
+model_relative <- c(runtime_model_relative, documentation_reference_relative)
 model_expected_sha <- c(
   "d0d84f0a498e6a62681f2a58ffc1ba53dab9e3d6af856b4ad1fd907196250004",
   "fbd064c3d0ccb4d2e1b9beb06fe3eacf0180677821e6a1773d20b308474d984e",
@@ -311,8 +315,8 @@ model_expected_sha <- c(
   "426859b825bd815aa69c8d97c9dd93097027ed1eb6b9e444d88b69562097a00c",
   "5f047ddb4053d1f6df9ace18e85e440b11553de246d024ce8138b427f5f9f7e3",
   "2ec8a291fae62c6f37541aec1de37444626d42b3290b371bb42b63d510034eae",
-  "5d06f1b3b3df5fe6c3dfb5552d9236e7764f3de4c458df9f2c2e68b94bbd9a8b",
-  "ce2c1dbf67d9eecb3ceaeda81ac9124cb7dbe81f42181f6abfb8f246b4f3a048",
+  "ad8ca660b6d84f9bbd1d8024f616a5bd66047a44ecc2c6e8b5c61c6be089fc5c",
+  "1a0d0fffec49c033100f3e9c76bfd05a7e3ed4ddfd701221f7199659dfcd9c11",
   "790e21a01054349a20f4fbbb7db926f6452d059344815a3a9d6a5de51db3310a"
 )
 names(model_expected_sha) <- model_relative
@@ -323,6 +327,10 @@ model_source <- file.path(model_root, model_relative)
 for (index in seq_along(model_source)) {
   assert_sha(model_source[[index]], model_expected_sha[[index]])
 }
+embedded_selectivity <- validate_embedded_selectivity(
+  file.path(model_root, "doitall.sh"),
+  file.path(model_root, "selectivity-models", "F2.csv")
+)
 
 reference_root <- file.path(repo, "data", "diagnostic", "reproduction")
 fitted_par_source <- file.path(reference_root, "fitted-reference", "final.par")
@@ -354,6 +362,8 @@ reference_expected_sha <- c(
 for (relative in names(reference_expected_sha)) {
   assert_sha(file.path(reference_root, relative), reference_expected_sha[[relative]])
 }
+assert_par_selectivity(fitted_par_source, embedded_selectivity)
+assert_par_selectivity(phase1_source, embedded_selectivity)
 
 phase1_reference_dir <- file.path(reference_root, "phase1-reference")
 phase1_mapping_files <- c(
@@ -492,11 +502,20 @@ model_dir <- file.path(output, "work")
 dir.create(case_dir, recursive = TRUE, mode = "0700")
 dir.create(reference_dir, recursive = TRUE, mode = "0700")
 dir.create(model_dir, recursive = TRUE, mode = "0700")
-for (index in seq_along(model_source)) {
-  target <- file.path(case_dir, model_relative[[index]])
+for (relative in runtime_model_relative) {
+  index <- match(relative, model_relative)
+  target <- file.path(case_dir, relative)
   copy_required(
     model_source[[index]], target,
-    mode = if (identical(model_relative[[index]], "doitall.sh")) "0755" else NULL
+    mode = if (identical(relative, "doitall.sh")) "0755" else NULL
+  )
+}
+observed_case_files <- sort(list.files(case_dir, recursive = TRUE, all.files = FALSE))
+if (!identical(observed_case_files, sort(runtime_model_relative))) {
+  stop(
+    "The fresh native case must contain only the five bet files, mfcl.cfg, ",
+    "and doitall.sh; model .conf and selectivity .csv files are audit-only.",
+    call. = FALSE
   )
 }
 fitted_par <- file.path(reference_dir, "final.par")
@@ -765,7 +784,10 @@ reference_roles <- c(
 )
 input_manifest <- rbind(
   data.frame(
-    role = rep("model-input", length(model_relative)),
+    role = c(
+      rep("native-runtime-input", length(runtime_model_relative)),
+      rep("documentation-reference", length(documentation_reference_relative))
+    ),
     path = file.path("data/diagnostic/mfcl", model_relative),
     sha256 = unname(model_expected_sha), stringsAsFactors = FALSE
   ),

@@ -1,6 +1,22 @@
 #!/bin/sh
 set -eu
 
+doitall_source=$0
+
+# The exact F2 controls are literal blocks in this file.  This inspection mode
+# is consumed by the external validators and deliberately needs no MFCL binary,
+# model configuration file, or selectivity CSV at runtime.
+if [ "${SELECTIVITY_PRINT_CONTROLS:-0}" = 1 ]; then
+  awk '
+    /^# BEGIN EMBEDDED F2 PHASE 1 SELECTIVITY CONTROLS$/ { print_controls=1; next }
+    /^# END EMBEDDED F2 PHASE 1 SELECTIVITY CONTROLS$/ { print_controls=0; next }
+    /^# BEGIN EMBEDDED F2 PHASE 5 SELECTIVITY CONTROLS$/ { print_controls=1; next }
+    /^# END EMBEDDED F2 PHASE 5 SELECTIVITY CONTROLS$/ { print_controls=0; next }
+    print_controls && $1 ~ /^-[0-9]+$/ { print }
+  ' "$doitall_source"
+  exit 0
+fi
+
 program_path=${PROGRAM_PATH:-./mfclo64}
 
 if [ ! -x "$program_path" ]; then
@@ -43,134 +59,13 @@ dm_concentration=7
 echo "DM controls: Nmax=$dm_nmax; grouped fish_pars(22) fixed at $dm_concentration; fish_pars(23) estimated"
 echo "Tag overdispersion: tau fixed at 2 under the direct parameterization (parest 305=1; fish_pars(4)=0; fish flags 43/44=0)"
 
-requested_model_id=${MODEL_ID:-S0.80-F1}
-case "$requested_model_id" in
-  S0.80-F1|S0.80-F2|S0.80-F3|S0.80-F4|S0.80-P1|S0.80-P2|S0.80-P3|S0.80-P4|\
-  S0.85-F1|S0.85-F2|S0.85-F3|S0.85-F4|S0.85-P1|S0.85-P2|S0.85-P3|S0.85-P4|\
-  S0.90-F1|S0.90-F2|S0.90-F3|S0.90-F4|S0.90-P1|S0.90-P2|S0.90-P3|S0.90-P4)
-    ;;
-  *)
-    echo "MODEL_ID must be S0.80, S0.85 or S0.90 followed by F1-F4 or P1-P4." >&2
-    exit 40
-    ;;
-esac
-
-model_input="model-inputs/$requested_model_id.conf"
-if [ ! -s "$model_input" ]; then
-  echo "Model input not found: $model_input" >&2
-  exit 40
-fi
-# Each short model input is committed separately and names the fixed steepness
-# and the complete 33-row selectivity input used by this run.
-. "./$model_input"
-if [ "$MODEL_ID" != "$requested_model_id" ]; then
-  echo "Model input identity mismatch: requested $requested_model_id, found $MODEL_ID." >&2
-  exit 40
-fi
-case "$STEEPNESS" in
-  0.80|0.85|0.90) ;;
-  *)
-    echo "STEEPNESS must be 0.80, 0.85 or 0.90 in $model_input." >&2
-    exit 40
-    ;;
-esac
-case "$SELECTIVITY_MODEL" in
-  F1|F2|F3|F4|P1|P2|P3|P4) ;;
-  *)
-    echo "Invalid SELECTIVITY_MODEL in $model_input: $SELECTIVITY_MODEL" >&2
-    exit 40
-    ;;
-esac
-if [ "$SELECTIVITY_INPUT" != "selectivity-models/$SELECTIVITY_MODEL.csv" ] ||
-   [ ! -s "$SELECTIVITY_INPUT" ]; then
-  echo "Invalid SELECTIVITY_INPUT in $model_input: $SELECTIVITY_INPUT" >&2
-  exit 40
-fi
-
-model_id=$MODEL_ID
-fixed_steepness=$STEEPNESS
-selectivity_model=$SELECTIVITY_MODEL
-selectivity_file=$SELECTIVITY_INPUT
-
-if ! awk -F, '
-  NR == 1 {
-    if ($0 != "fishery,fishery_name,flag16,flag24,flag56,flag57,flag61") failures++
-    next
-  }
-  {
-    fishery=NR-1
-    if (NF != 7 || $1 != fishery || $2 == "" ||
-        ($3 != 0 && $3 != 1) || $4 < 1 || $4 > 33 ||
-        ($5 != 0 && $5 != 10000) || ($6 != 1 && $6 != 3) ||
-        ($7 != 4 && $7 != 5 && $7 != 7)) failures++
-  }
-  END { exit(NR == 34 && failures == 0 ? 0 : 1) }
-' "$selectivity_file"; then
-  echo "Invalid 33-row selectivity input: $selectivity_file" >&2
-  exit 40
-fi
-case "$selectivity_model" in
-  F1)
-    selectivity_label="Flexible: F10 weak non-decreasing"
-    ;;
-  F2)
-    selectivity_label="Flexible: F10 and F33 weak non-decreasing"
-    ;;
-  F3)
-    selectivity_label="Flexible: F3 and F10 logistic"
-    ;;
-  F4)
-    selectivity_label="Flexible: F33 logistic; F10 unpenalized spline"
-    ;;
-  P1)
-    selectivity_label="Parsimonious sharing: retained four-node splines; F33 logistic"
-    ;;
-  P2)
-    selectivity_label="Parsimonious sharing: five-node splines; F33 logistic"
-    ;;
-  P3)
-    selectivity_label="Parsimonious sharing: five-node splines; F10 and F33 logistic"
-    ;;
-  P4)
-    selectivity_label="Parsimonious sharing: five-node F10 and F33 weak non-decreasing"
-    ;;
-esac
+model_id=S0.90-F2
+fixed_steepness=0.90
+selectivity_model=F2
+selectivity_label="Flexible: F10 and F33 weak non-decreasing"
 echo "Model: $model_id"
 echo "Fixed steepness: $fixed_steepness (INI sv(29); age flag 162=0)"
-echo "Selectivity model: $selectivity_model - $selectivity_label"
-
-emit_selectivity_phase1_controls()
-{
-  awk -F, 'NR > 1 {
-    printf "  -%d 16 %s  # %s flag 16 from explicit input\n", $1, $3, $2
-    printf "  -%d 24 %s  # %s selectivity-sharing group\n", $1, $4, $2
-    printf "  -%d 56 %s  # %s selectivity-penalty weight\n", $1, $5, $2
-    printf "  -%d 57 %s  # %s selectivity form\n", $1, $6, $2
-    printf "  -%d 61 %s  # %s spline-node count\n", $1, $7, $2
-  }' "$selectivity_file"
-}
-
-emit_selectivity_phase5_controls()
-{
-  awk -F, 'NR > 1 {
-    printf "  -%d 24 %s  # %s final selectivity-sharing group\n", $1, $4, $2
-  }' "$selectivity_file"
-}
-
-selectivity_phase1_controls=$(emit_selectivity_phase1_controls)
-selectivity_phase5_controls=$(emit_selectivity_phase5_controls)
-
-if [ "${SELECTIVITY_PRINT_CONTROLS:-0}" = 1 ]; then
-  printf '%s\n' "# $model_id: fixed steepness $fixed_steepness; $selectivity_label"
-  printf '%s\n' "$selectivity_phase1_controls"
-  printf '%s\n' "$selectivity_phase5_controls"
-  exit 0
-fi
-
-if [ -z "${SELECTIVITY_AUDIT_PAR:-}" ]; then
-  cp "$model_input" selected-model-input.conf
-  cp "$selectivity_file" selected-selectivity-input.csv
-fi
+echo "Selectivity model: $selectivity_model - $selectivity_label (198 literal controls embedded below)"
 
 audit_tau2_fixed()
 {
@@ -355,43 +250,79 @@ audit_selectivity_model()
   phase_label=$2
   if ! awk '
     FILENAME == ARGV[1] {
-      if (FNR == 1) next
-      split($0, values, ",")
-      expected_fishery=values[1]
-      expected16[expected_fishery]=values[3]
-      expected24[expected_fishery]=values[4]
-      expected56[expected_fishery]=values[5]
-      expected57[expected_fishery]=values[6]
-      expected61[expected_fishery]=values[7]
-      expected_rows++
+      if ($0 == "# BEGIN EMBEDDED F2 PHASE 1 SELECTIVITY CONTROLS") {
+        in_phase1=1
+        next
+      }
+      if ($0 == "# END EMBEDDED F2 PHASE 1 SELECTIVITY CONTROLS") {
+        in_phase1=0
+        next
+      }
+      if ($0 == "# BEGIN EMBEDDED F2 PHASE 5 SELECTIVITY CONTROLS") {
+        in_phase5=1
+        next
+      }
+      if ($0 == "# END EMBEDDED F2 PHASE 5 SELECTIVITY CONTROLS") {
+        in_phase5=0
+        next
+      }
+      if ((in_phase1 || in_phase5) && $1 ~ /^-[0-9]+$/) {
+        fishery=-$1
+        flag=$2
+        value=$3
+        if (fishery < 1 || fishery > 33) failures++
+        if (in_phase1) {
+          if (flag != 16 && flag != 24 && flag != 56 &&
+              flag != 57 && flag != 61) failures++
+          key=fishery SUBSEP flag
+          if (key in expected) failures++
+          expected[key]=value
+          phase1_controls++
+        } else {
+          if (flag != 24 || fishery in final24) failures++
+          final24[fishery]=value
+          phase5_controls++
+        }
+      }
       next
     }
     /^# fish flags/ { in_fish=1; next }
     in_fish && /^#/ { in_fish=0 }
     in_fish && NF {
       observed_fishery++
-      if ($16 != expected16[observed_fishery] ||
-          $24 != expected24[observed_fishery] ||
-          $56 != expected56[observed_fishery] ||
-          $57 != expected57[observed_fishery] ||
-          $61 != expected61[observed_fishery]) {
+      expected16=expected[observed_fishery,16]
+      expected24=final24[observed_fishery]
+      expected56=expected[observed_fishery,56]
+      expected57=expected[observed_fishery,57]
+      expected61=expected[observed_fishery,61]
+      if ($16 != expected16 || $24 != expected24 ||
+          $56 != expected56 || $57 != expected57 || $61 != expected61) {
         printf "F%d observed 16/24/56/57/61=%s/%s/%s/%s/%s; expected %s/%s/%s/%s/%s\n",
           observed_fishery, $16, $24, $56, $57, $61,
-          expected16[observed_fishery], expected24[observed_fishery],
-          expected56[observed_fishery], expected57[observed_fishery],
-          expected61[observed_fishery] > "/dev/stderr"
+          expected16, expected24, expected56, expected57, expected61 > "/dev/stderr"
         failures++
       }
       if (observed_fishery == 33) exit
     }
     END {
-      if (expected_rows != 33 || observed_fishery != 33) {
-        print "Expected 33 fishery-flag rows; found " observed_fishery > "/dev/stderr"
+      if (phase1_controls != 165 || phase5_controls != 33 ||
+          observed_fishery != 33) {
+        printf "Expected embedded/observed control counts 165/33/33; found %d/%d/%d\n",
+          phase1_controls, phase5_controls, observed_fishery > "/dev/stderr"
         failures++
+      }
+      for (fishery=1; fishery<=33; fishery++) {
+        if (!((fishery SUBSEP 16) in expected) ||
+            !((fishery SUBSEP 24) in expected) ||
+            !((fishery SUBSEP 56) in expected) ||
+            !((fishery SUBSEP 57) in expected) ||
+            !((fishery SUBSEP 61) in expected) ||
+            !(fishery in final24) ||
+            expected[fishery,24] != final24[fishery]) failures++
       }
       exit(failures > 0 ? 1 : 0)
     }
-  ' "$selectivity_file" "$par_file"; then
+  ' "$doitall_source" "$par_file"; then
     echo "$phase_label selectivity audit failed for $selectivity_model." >&2
     exit 43
   fi
@@ -746,7 +677,173 @@ $program_path bet.frq 00.fixed.par 01.par -file - <<PHASE1
   -999 89 0  # stage relative sample-size exponent fixed at zero
 # Model-specific selectivity controls are last so they override the common
 # Diagnostic defaults without altering any non-selectivity setting.
-$selectivity_phase1_controls
+# BEGIN EMBEDDED F2 PHASE 1 SELECTIVITY CONTROLS
+  -1 16 0  # LL.WEST.1 flag 16 from explicit input
+  -1 24 1  # LL.WEST.1 selectivity-sharing group
+  -1 56 0  # LL.WEST.1 selectivity-penalty weight
+  -1 57 3  # LL.WEST.1 selectivity form
+  -1 61 5  # LL.WEST.1 spline-node count
+  -2 16 0  # LL.EAST.1 flag 16 from explicit input
+  -2 24 2  # LL.EAST.1 selectivity-sharing group
+  -2 56 0  # LL.EAST.1 selectivity-penalty weight
+  -2 57 3  # LL.EAST.1 selectivity form
+  -2 61 5  # LL.EAST.1 spline-node count
+  -3 16 0  # LL.US.1 flag 16 from explicit input
+  -3 24 3  # LL.US.1 selectivity-sharing group
+  -3 56 0  # LL.US.1 selectivity-penalty weight
+  -3 57 3  # LL.US.1 selectivity form
+  -3 61 5  # LL.US.1 spline-node count
+  -4 16 0  # LL.ALL.2 flag 16 from explicit input
+  -4 24 4  # LL.ALL.2 selectivity-sharing group
+  -4 56 0  # LL.ALL.2 selectivity-penalty weight
+  -4 57 3  # LL.ALL.2 selectivity form
+  -4 61 5  # LL.ALL.2 spline-node count
+  -5 16 0  # LL.OS.2 flag 16 from explicit input
+  -5 24 5  # LL.OS.2 selectivity-sharing group
+  -5 56 0  # LL.OS.2 selectivity-penalty weight
+  -5 57 3  # LL.OS.2 selectivity form
+  -5 61 5  # LL.OS.2 spline-node count
+  -6 16 0  # LL.ARCH.3 flag 16 from explicit input
+  -6 24 6  # LL.ARCH.3 selectivity-sharing group
+  -6 56 0  # LL.ARCH.3 selectivity-penalty weight
+  -6 57 3  # LL.ARCH.3 selectivity form
+  -6 61 5  # LL.ARCH.3 spline-node count
+  -7 16 0  # LL.WEST.3 flag 16 from explicit input
+  -7 24 7  # LL.WEST.3 selectivity-sharing group
+  -7 56 0  # LL.WEST.3 selectivity-penalty weight
+  -7 57 3  # LL.WEST.3 selectivity form
+  -7 61 5  # LL.WEST.3 spline-node count
+  -8 16 0  # LL.EAST.3 flag 16 from explicit input
+  -8 24 8  # LL.EAST.3 selectivity-sharing group
+  -8 56 0  # LL.EAST.3 selectivity-penalty weight
+  -8 57 3  # LL.EAST.3 selectivity form
+  -8 61 5  # LL.EAST.3 spline-node count
+  -9 16 0  # LL.OS.3 flag 16 from explicit input
+  -9 24 9  # LL.OS.3 selectivity-sharing group
+  -9 56 0  # LL.OS.3 selectivity-penalty weight
+  -9 57 3  # LL.OS.3 selectivity form
+  -9 61 5  # LL.OS.3 spline-node count
+  -10 16 1  # LL.ALL.5 flag 16 from explicit input
+  -10 24 10  # LL.ALL.5 selectivity-sharing group
+  -10 56 10000  # LL.ALL.5 selectivity-penalty weight
+  -10 57 3  # LL.ALL.5 selectivity form
+  -10 61 5  # LL.ALL.5 spline-node count
+  -11 16 0  # LL.AU.5 flag 16 from explicit input
+  -11 24 11  # LL.AU.5 selectivity-sharing group
+  -11 56 0  # LL.AU.5 selectivity-penalty weight
+  -11 57 3  # LL.AU.5 selectivity form
+  -11 61 5  # LL.AU.5 spline-node count
+  -12 16 0  # PS.JP.1 flag 16 from explicit input
+  -12 24 12  # PS.JP.1 selectivity-sharing group
+  -12 56 0  # PS.JP.1 selectivity-penalty weight
+  -12 57 3  # PS.JP.1 selectivity form
+  -12 61 5  # PS.JP.1 spline-node count
+  -13 16 0  # PL.JP.1 flag 16 from explicit input
+  -13 24 13  # PL.JP.1 selectivity-sharing group
+  -13 56 0  # PL.JP.1 selectivity-penalty weight
+  -13 57 3  # PL.JP.1 selectivity form
+  -13 61 5  # PL.JP.1 spline-node count
+  -14 16 0  # HL.ID.2 flag 16 from explicit input
+  -14 24 14  # HL.ID.2 selectivity-sharing group
+  -14 56 0  # HL.ID.2 selectivity-penalty weight
+  -14 57 3  # HL.ID.2 selectivity form
+  -14 61 5  # HL.ID.2 spline-node count
+  -15 16 0  # HL.PH.2 flag 16 from explicit input
+  -15 24 15  # HL.PH.2 selectivity-sharing group
+  -15 56 0  # HL.PH.2 selectivity-penalty weight
+  -15 57 3  # HL.PH.2 selectivity form
+  -15 61 5  # HL.PH.2 spline-node count
+  -16 16 0  # PL.ALL.2 flag 16 from explicit input
+  -16 24 16  # PL.ALL.2 selectivity-sharing group
+  -16 56 0  # PL.ALL.2 selectivity-penalty weight
+  -16 57 3  # PL.ALL.2 selectivity form
+  -16 61 5  # PL.ALL.2 spline-node count
+  -17 16 0  # PS.ID.2 flag 16 from explicit input
+  -17 24 17  # PS.ID.2 selectivity-sharing group
+  -17 56 0  # PS.ID.2 selectivity-penalty weight
+  -17 57 3  # PS.ID.2 selectivity form
+  -17 61 5  # PS.ID.2 spline-node count
+  -18 16 0  # PS.PH.2 flag 16 from explicit input
+  -18 24 18  # PS.PH.2 selectivity-sharing group
+  -18 56 0  # PS.PH.2 selectivity-penalty weight
+  -18 57 3  # PS.PH.2 selectivity form
+  -18 61 5  # PS.PH.2 spline-node count
+  -19 16 0  # PS.ASS.2 flag 16 from explicit input
+  -19 24 19  # PS.ASS.2 selectivity-sharing group
+  -19 56 0  # PS.ASS.2 selectivity-penalty weight
+  -19 57 3  # PS.ASS.2 selectivity form
+  -19 61 5  # PS.ASS.2 spline-node count
+  -20 16 0  # PS.UNA.2 flag 16 from explicit input
+  -20 24 20  # PS.UNA.2 selectivity-sharing group
+  -20 56 0  # PS.UNA.2 selectivity-penalty weight
+  -20 57 3  # PS.UNA.2 selectivity form
+  -20 61 5  # PS.UNA.2 spline-node count
+  -21 16 0  # DOM.ID.2 flag 16 from explicit input
+  -21 24 21  # DOM.ID.2 selectivity-sharing group
+  -21 56 0  # DOM.ID.2 selectivity-penalty weight
+  -21 57 3  # DOM.ID.2 selectivity form
+  -21 61 5  # DOM.ID.2 spline-node count
+  -22 16 0  # DOM.PH.2 flag 16 from explicit input
+  -22 24 22  # DOM.PH.2 selectivity-sharing group
+  -22 56 0  # DOM.PH.2 selectivity-penalty weight
+  -22 57 3  # DOM.PH.2 selectivity form
+  -22 61 5  # DOM.PH.2 spline-node count
+  -23 16 0  # DOM.VN.2 flag 16 from explicit input
+  -23 24 23  # DOM.VN.2 selectivity-sharing group
+  -23 56 0  # DOM.VN.2 selectivity-penalty weight
+  -23 57 3  # DOM.VN.2 selectivity form
+  -23 61 5  # DOM.VN.2 spline-node count
+  -24 16 0  # PL.ALL.WEST.3 flag 16 from explicit input
+  -24 24 24  # PL.ALL.WEST.3 selectivity-sharing group
+  -24 56 0  # PL.ALL.WEST.3 selectivity-penalty weight
+  -24 57 3  # PL.ALL.WEST.3 selectivity form
+  -24 61 5  # PL.ALL.WEST.3 spline-node count
+  -25 16 0  # PS.ASS.WEST.3 flag 16 from explicit input
+  -25 24 25  # PS.ASS.WEST.3 selectivity-sharing group
+  -25 56 0  # PS.ASS.WEST.3 selectivity-penalty weight
+  -25 57 3  # PS.ASS.WEST.3 selectivity form
+  -25 61 7  # PS.ASS.WEST.3 spline-node count
+  -26 16 0  # PS.ASS.EAST.3 flag 16 from explicit input
+  -26 24 26  # PS.ASS.EAST.3 selectivity-sharing group
+  -26 56 0  # PS.ASS.EAST.3 selectivity-penalty weight
+  -26 57 3  # PS.ASS.EAST.3 selectivity form
+  -26 61 7  # PS.ASS.EAST.3 spline-node count
+  -27 16 0  # PS.UNA.WEST.3 flag 16 from explicit input
+  -27 24 27  # PS.UNA.WEST.3 selectivity-sharing group
+  -27 56 0  # PS.UNA.WEST.3 selectivity-penalty weight
+  -27 57 3  # PS.UNA.WEST.3 selectivity form
+  -27 61 5  # PS.UNA.WEST.3 spline-node count
+  -28 16 0  # PS.UNA.EAST.3 flag 16 from explicit input
+  -28 24 28  # PS.UNA.EAST.3 selectivity-sharing group
+  -28 56 0  # PS.UNA.EAST.3 selectivity-penalty weight
+  -28 57 3  # PS.UNA.EAST.3 selectivity form
+  -28 61 5  # PS.UNA.EAST.3 spline-node count
+  -29 16 0  # Index_R1 flag 16 from explicit input
+  -29 24 29  # Index_R1 selectivity-sharing group
+  -29 56 0  # Index_R1 selectivity-penalty weight
+  -29 57 3  # Index_R1 selectivity form
+  -29 61 5  # Index_R1 spline-node count
+  -30 16 0  # Index_R2 flag 16 from explicit input
+  -30 24 30  # Index_R2 selectivity-sharing group
+  -30 56 0  # Index_R2 selectivity-penalty weight
+  -30 57 3  # Index_R2 selectivity form
+  -30 61 5  # Index_R2 spline-node count
+  -31 16 0  # Index_R3 flag 16 from explicit input
+  -31 24 31  # Index_R3 selectivity-sharing group
+  -31 56 0  # Index_R3 selectivity-penalty weight
+  -31 57 3  # Index_R3 selectivity form
+  -31 61 5  # Index_R3 spline-node count
+  -32 16 0  # Index_R4 flag 16 from explicit input
+  -32 24 32  # Index_R4 selectivity-sharing group
+  -32 56 0  # Index_R4 selectivity-penalty weight
+  -32 57 3  # Index_R4 selectivity form
+  -32 61 5  # Index_R4 spline-node count
+  -33 16 1  # Index_R5 flag 16 from explicit input
+  -33 24 33  # Index_R5 selectivity-sharing group
+  -33 56 10000  # Index_R5 selectivity-penalty weight
+  -33 57 3  # Index_R5 selectivity form
+  -33 61 5  # Index_R5 spline-node count
+# END EMBEDDED F2 PHASE 1 SELECTIVITY CONTROLS
 PHASE1
 audit_tau2_fixed 01.par "Phase 1"
 audit_steepness_fixed 01.par "Phase 1"
@@ -829,7 +926,41 @@ $program_path bet.frq 04.par 05.par -file - <<PHASE5
   -33 24 33  # Index R5; separate selectivity coefficient-sharing group from staged run 5
 # P-series models retain the two documented extraction-fishery sharing pairs
 # and independent index groups after the staged-run-5 controls above.
-$selectivity_phase5_controls
+# BEGIN EMBEDDED F2 PHASE 5 SELECTIVITY CONTROLS
+  -1 24 1  # LL.WEST.1 final selectivity-sharing group
+  -2 24 2  # LL.EAST.1 final selectivity-sharing group
+  -3 24 3  # LL.US.1 final selectivity-sharing group
+  -4 24 4  # LL.ALL.2 final selectivity-sharing group
+  -5 24 5  # LL.OS.2 final selectivity-sharing group
+  -6 24 6  # LL.ARCH.3 final selectivity-sharing group
+  -7 24 7  # LL.WEST.3 final selectivity-sharing group
+  -8 24 8  # LL.EAST.3 final selectivity-sharing group
+  -9 24 9  # LL.OS.3 final selectivity-sharing group
+  -10 24 10  # LL.ALL.5 final selectivity-sharing group
+  -11 24 11  # LL.AU.5 final selectivity-sharing group
+  -12 24 12  # PS.JP.1 final selectivity-sharing group
+  -13 24 13  # PL.JP.1 final selectivity-sharing group
+  -14 24 14  # HL.ID.2 final selectivity-sharing group
+  -15 24 15  # HL.PH.2 final selectivity-sharing group
+  -16 24 16  # PL.ALL.2 final selectivity-sharing group
+  -17 24 17  # PS.ID.2 final selectivity-sharing group
+  -18 24 18  # PS.PH.2 final selectivity-sharing group
+  -19 24 19  # PS.ASS.2 final selectivity-sharing group
+  -20 24 20  # PS.UNA.2 final selectivity-sharing group
+  -21 24 21  # DOM.ID.2 final selectivity-sharing group
+  -22 24 22  # DOM.PH.2 final selectivity-sharing group
+  -23 24 23  # DOM.VN.2 final selectivity-sharing group
+  -24 24 24  # PL.ALL.WEST.3 final selectivity-sharing group
+  -25 24 25  # PS.ASS.WEST.3 final selectivity-sharing group
+  -26 24 26  # PS.ASS.EAST.3 final selectivity-sharing group
+  -27 24 27  # PS.UNA.WEST.3 final selectivity-sharing group
+  -28 24 28  # PS.UNA.EAST.3 final selectivity-sharing group
+  -29 24 29  # Index_R1 final selectivity-sharing group
+  -30 24 30  # Index_R2 final selectivity-sharing group
+  -31 24 31  # Index_R3 final selectivity-sharing group
+  -32 24 32  # Index_R4 final selectivity-sharing group
+  -33 24 33  # Index_R5 final selectivity-sharing group
+# END EMBEDDED F2 PHASE 5 SELECTIVITY CONTROLS
 PHASE5
 audit_tau2_fixed 05.par "Phase 5"
 audit_steepness_fixed 05.par "Phase 5"

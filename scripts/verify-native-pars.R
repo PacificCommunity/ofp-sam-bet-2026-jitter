@@ -12,6 +12,7 @@ if (length(script_arg) != 1L) {
 script_file <- normalizePath(sub("^--file=", "", script_arg), mustWork = TRUE)
 repo <- normalizePath(file.path(dirname(script_file), ".."), mustWork = TRUE)
 setwd(repo)
+source(file.path(repo, "scripts", "validate-embedded-selectivity.R"))
 
 manifest_file <- if (length(args)) args[[1L]] else {
   file.path("data", "diagnostic", "native-par-validation.csv")
@@ -35,9 +36,18 @@ common_names <- c(
   "bet.reg_scaling", "mfcl.cfg", "mfclo64"
 )
 common_files <- file.path(mfcl_dir, common_names)
-if (!all(file.exists(common_files)) || file.access(mfcl, mode = 1L) != 0L) {
+doitall <- file.path(mfcl_dir, "doitall.sh")
+selectivity_reference <- file.path(mfcl_dir, "selectivity-models", "F2.csv")
+if (
+  !all(file.exists(c(common_files, doitall, selectivity_reference))) ||
+    any(file.access(c(mfcl, doitall), mode = 1L) != 0L)
+) {
   stop("The shared native MFCL bundle is incomplete or not executable.", call. = FALSE)
 }
+embedded_selectivity <- validate_embedded_selectivity(
+  doitall,
+  selectivity_reference
+)
 
 sha256_file <- function(path) {
   output <- system2("sha256sum", shQuote(path), stdout = TRUE, stderr = TRUE)
@@ -217,6 +227,7 @@ for (position in seq_along(accepted_seeds)) {
   par_obj <- par_scalar(par_file, "# Objective function value")
   par_grad <- par_scalar(par_file, "# Maximum magnitude gradient value")
   assert_fixed_steepness(par_file)
+  assert_par_selectivity(par_file, embedded_selectivity)
   par_compile_version <- par_scalar(
     par_file, "# MULTIFAN-CL compilation version number"
   )
@@ -272,6 +283,7 @@ for (position in seq_along(accepted_seeds)) {
   )))
   evaluated_obj <- par_scalar(evaluated_par, "# Objective function value")
   assert_fixed_steepness(evaluated_par)
+  assert_par_selectivity(evaluated_par, embedded_selectivity)
   if (
     length(total_lines) < 1L || length(native_obj) != 1L || !is.finite(native_obj) ||
       abs(native_obj - expected_obj) > 1e-6 ||

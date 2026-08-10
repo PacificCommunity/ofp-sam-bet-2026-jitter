@@ -24,7 +24,15 @@ audited.
 - `data/diagnostic/mfcl/` contains one shared copy of native MFCL 2.2.7.9,
   `doitall.sh`, and the common BET input/configuration files. The public
   `bet.ini` itself contains the Diagnostic model value `sv(29) = 0.90`; the
-  workflow keeps it fixed and audits it in every phase.
+  workflow keeps it fixed and audits it in every phase. The native script
+  directly embeds model S0.90-F2, fixed tau = 2, and all 198 fishery
+  selectivity controls used in Phases 1 and 5. It does not source a model
+  `.conf` file or read/copy a selectivity `.csv` at runtime; `mfcl.cfg`
+  remains one of the required native MFCL files.
+- `model-inputs/S0.90-F2.conf` and `selectivity-models/F2.csv` are
+  checksum-locked documentation and external-validation references. The
+  validators prove that the 165 Phase-1 and 33 Phase-5 literal controls in
+  `doitall.sh` are identical to the 33-row F2 reference.
 - `data/diagnostic/reproduction/` contains the fitted starting point, the
   independently recovered Phase-1 reference, and the exact 25-seed jitter
   plans.
@@ -34,6 +42,20 @@ audited.
 All data files are covered by `data/SHA256SUMS`. Rendering the report never
 refits the model. All 25 retained final PAR files also contain `sv(29) = 0.90`
 with age flag 162 fixed at zero.
+
+For a clean native fit, only the flat native bundle is required; no model
+`.conf` or selectivity `.csv` substitution is needed:
+
+```sh
+mkdir bet-jitter-native
+cp data/diagnostic/mfcl/bet.age_length data/diagnostic/mfcl/bet.frq \
+  data/diagnostic/mfcl/bet.ini data/diagnostic/mfcl/bet.reg_scaling \
+  data/diagnostic/mfcl/bet.tag data/diagnostic/mfcl/mfcl.cfg \
+  data/diagnostic/mfcl/mfclo64 data/diagnostic/mfcl/doitall.sh \
+  bet-jitter-native/
+cd bet-jitter-native
+./doitall.sh
+```
 
 ## Verify the recovered PAR files
 

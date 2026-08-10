@@ -1,3 +1,5 @@
+source("scripts/validate-embedded-selectivity.R")
+
 model_dir <- "data/diagnostic"
 payload_file <- file.path(model_dir, "model_payload.rds")
 regional_file <- file.path(model_dir, "jitter-regional-timeseries.rds")
@@ -68,8 +70,8 @@ bundle_hashes <- c(
   "data/diagnostic/mfcl/bet.age_length" = "426859b825bd815aa69c8d97c9dd93097027ed1eb6b9e444d88b69562097a00c",
   "data/diagnostic/mfcl/bet.reg_scaling" = "5f047ddb4053d1f6df9ace18e85e440b11553de246d024ce8138b427f5f9f7e3",
   "data/diagnostic/mfcl/mfcl.cfg" = "2ec8a291fae62c6f37541aec1de37444626d42b3290b371bb42b63d510034eae",
-  "data/diagnostic/mfcl/doitall.sh" = "5d06f1b3b3df5fe6c3dfb5552d9236e7764f3de4c458df9f2c2e68b94bbd9a8b",
-  "data/diagnostic/mfcl/model-inputs/S0.90-F2.conf" = "ce2c1dbf67d9eecb3ceaeda81ac9124cb7dbe81f42181f6abfb8f246b4f3a048",
+  "data/diagnostic/mfcl/doitall.sh" = "ad8ca660b6d84f9bbd1d8024f616a5bd66047a44ecc2c6e8b5c61c6be089fc5c",
+  "data/diagnostic/mfcl/model-inputs/S0.90-F2.conf" = "1a0d0fffec49c033100f3e9c76bfd05a7e3ed4ddfd701221f7199659dfcd9c11",
   "data/diagnostic/mfcl/selectivity-models/F2.csv" = "790e21a01054349a20f4fbbb7db926f6452d059344815a3a9d6a5de51db3310a",
   "data/diagnostic/reproduction/fitted-reference/final.par" = "21dcaea9db8c89ddc8c29fa3c3a5e514b50bef6e26587c168c00c05f35fbebc3",
   "data/diagnostic/reproduction/fitted-reference/indepvar.rpt" = "5792c57d7bcce5e679faa5adac63e6d20886fc478f03a29277814616e313b490",
@@ -127,9 +129,11 @@ model_config <- readLines(
 )
 if (
   sum(model_config == "MODEL_ID=S0.90-F2") != 1L ||
-    sum(model_config == "STEEPNESS=0.90") != 1L
+    sum(model_config == "STEEPNESS=0.90") != 1L ||
+    sum(model_config == "SELECTIVITY_MODEL=F2") != 1L ||
+    sum(model_config == "SELECTIVITY_INPUT=selectivity-models/F2.csv") != 1L
 ) {
-  stop("The jitter configuration must be exactly S0.90-F2 at steepness 0.90.", call. = FALSE)
+  stop("The documentation reference must identify S0.90-F2 at steepness 0.90.", call. = FALSE)
 }
 ini_values <- numeric_row_after(
   readLines("data/diagnostic/mfcl/bet.ini", warn = FALSE),
@@ -146,6 +150,10 @@ if (
   stop("The bundled native MFCL executable and doitall.sh must be executable.", call. = FALSE)
 }
 doitall_lines <- readLines("data/diagnostic/mfcl/doitall.sh", warn = FALSE)
+embedded_selectivity <- validate_embedded_selectivity(
+  "data/diagnostic/mfcl/doitall.sh",
+  "data/diagnostic/mfcl/selectivity-models/F2.csv"
+)
 if (
   !any(grepl(
     "phase10_11_convergence=${BET_PHASE10_11_CONVERGENCE:--4}",
@@ -153,10 +161,14 @@ if (
     fixed = TRUE
   )) ||
     sum(trimws(doitall_lines) == "1 50 $phase10_11_convergence") != 2L ||
-    sum(trimws(doitall_lines) == "cp bet.ini bet.model.ini") != 1L
+    sum(trimws(doitall_lines) == "cp bet.ini bet.model.ini") != 1L ||
+    any(grepl(
+      "model-inputs/|selectivity-models/|SELECTIVITY_INPUT|SELECTIVITY_REFERENCE",
+      doitall_lines
+    ))
 ) {
   stop(
-    "doitall.sh must use the public INI unchanged and apply 1e-4 to both final phases.",
+    "doitall.sh must be self-contained for model/selectivity controls, use the public INI unchanged, and apply 1e-4 to both final phases.",
     call. = FALSE
   )
 }
@@ -239,6 +251,7 @@ semantic_par_files <- c(
 )
 for (par_file in semantic_par_files) {
   assert_fixed_steepness(readLines(par_file, warn = FALSE), par_file)
+  assert_par_selectivity(par_file, embedded_selectivity)
 }
 
 native_manifest_file <- file.path(model_dir, "native-par-validation.csv")
