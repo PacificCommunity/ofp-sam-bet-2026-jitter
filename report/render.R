@@ -35,6 +35,9 @@ threshold <- 1e-4
 diagnostics$converged <- diagnostics$run_completed %in% TRUE &
   is.finite(diagnostics$max_grad) & abs(diagnostics$max_grad) <= threshold
 accepted_seeds <- diagnostics$seed[diagnostics$converged]
+n_attempted <- nrow(diagnostics)
+n_completed <- sum(diagnostics$run_completed %in% TRUE)
+n_retained <- sum(diagnostics$converged)
 
 keep_accepted <- function(data) {
   data[
@@ -315,8 +318,7 @@ for (regional_quantity in names(regional_labels)) {
 
 # Public tables: one accepted-fit table with Word and LaTeX copy controls.
 accepted_table <- diag_plot_data[order(diag_plot_data$seed), c("seed", "obj_fun", "delta_obj", "max_grad")]
-accepted_table$seed <- seq_len(nrow(accepted_table))
-names(accepted_table) <- c("Accepted fit", "Objective function value", "Delta objective", "MGC")
+names(accepted_table) <- c("Seed", "Objective function value", "Delta objective", "MGC")
 utils::write.csv(accepted_table, file.path(table_dir, "jitter-diagnostic-model.csv"), row.names = FALSE)
 utils::write.csv(regional, file.path(table_dir, "jitter-regional-timeseries.csv"), row.names = FALSE)
 utils::write.csv(stock_status, file.path(table_dir, "jitter-stock-status-timeseries.csv"), row.names = FALSE)
@@ -335,11 +337,11 @@ latex_rows <- paste0(
   collapse = "\n"
 )
 latex_table <- paste0(
-  "\\begin{table}[htbp]\n\\centering\n\\caption{Jitter results for the Diagnostic model. Of 30 jitter runs, 25 met the convergence criterion $\\mathrm{MGC} \\leq 1.0 \\times 10^{-4}$. The unjittered Diagnostic model had an objective-function value of 90,814.9 and an MGC of $9.68 \\times 10^{-5}$.}\n",
+  "\\begin{table}[htbp]\n\\centering\n\\caption{Jitter results for the Diagnostic model. Of 30 attempted runs, 26 completed and the 25 fits with $\\mathrm{MGC} \\leq 1.0 \\times 10^{-4}$ were retained. The unjittered Diagnostic model had an objective-function value of 90,814.9 and an MGC of $9.68 \\times 10^{-5}$.}\n",
   "\\label{tab:jitter-diagnostic-model}\n\\small\n\\setlength{\\tabcolsep}{7pt}\n\\renewcommand{\\arraystretch}{1.08}\n",
-  "\\begin{tabular}{rrrr}\n\\toprule\nAccepted fit & Objective function value & $\\Delta$ objective & MGC \\\\\n\\midrule\n",
+  "\\begin{tabular}{rrrr}\n\\toprule\nSeed & Objective function value & $\\Delta$ objective & MGC \\\\\n\\midrule\n",
   latex_rows,
-  "\n\\bottomrule\n\\end{tabular}\n\\end{table}\n"
+  "\n\\bottomrule\n\\end{tabular}\n\\end{table}"
 )
 writeLines(latex_table, file.path(table_dir, "jitter-diagnostic-model.tex"), useBytes = TRUE)
 
@@ -354,12 +356,12 @@ figure_specs <- list(
   list(
     file = "jitter-diagnostics-diagnostic-model.png",
     caption = paste0(
-      "Jitter convergence diagnostics for the Diagnostic model. Each point represents one jitter run. ",
-      "The red diamond identifies the Diagnostic model without jitter; convergence was assessed using ",
-      "MGC ≤ 1.0 × 10⁻⁴. Lower objective-function values indicate improved fit. Five completed runs did not meet ",
-      "the convergence criterion and are not shown."
+      "Jitter convergence diagnostics for the Diagnostic model. Each point represents one retained jitter fit. ",
+      "The red diamond identifies the Diagnostic model without jitter; retained fits satisfy ",
+      "MGC ≤ 1.0 × 10⁻⁴. Lower objective-function values indicate improved fit. Four runs did not complete ",
+      "and completed seed 6 exceeded the cutoff; these five runs are not shown."
     ),
-    latex_caption = "Jitter convergence diagnostics for the Diagnostic model. Each point represents one jitter run. The red diamond identifies the unjittered Diagnostic model; convergence was assessed using $\\mathrm{MGC} \\leq 1.0 \\times 10^{-4}$. Lower objective-function values indicate improved fit. Five completed runs did not meet the convergence criterion and are not shown."
+    latex_caption = "Jitter convergence diagnostics for the Diagnostic model. Each point represents one retained jitter run. The red diamond identifies the unjittered Diagnostic model; retained fits satisfy $\\mathrm{MGC} \\leq 1.0 \\times 10^{-4}$. Lower objective-function values indicate improved fit. Four runs did not complete and completed seed 6 exceeded the cutoff; these five runs are not shown."
   ),
   list(
     file = "jitter-derived-diagnostic-model.png",
@@ -436,22 +438,27 @@ html <- paste0(
   "table{border-collapse:collapse;width:100%;font-family:Georgia,serif;font-size:14px}th,td{padding:7px 9px;border-bottom:1px solid #d5dfe3;text-align:right}th{background:#e8f1f4}th:first-child,td:first-child{text-align:center}",
   ".buttons{display:flex;gap:10px;margin:14px 0}.buttons button{background:#176c80;color:white;border:0;padding:9px 13px;font-weight:700;cursor:pointer}.buttons button:hover{background:#103c56}.method-list{max-width:960px;line-height:1.6;font-family:Georgia,serif;color:#29495b}.method-list li{margin:.45rem 0}.copy-status{position:fixed;right:22px;bottom:22px;background:#103c56;color:#fff;padding:10px 14px;border-radius:3px;opacity:0;transition:opacity .15s;z-index:9}.copy-status.show{opacity:1}",
   "@media print{body{background:#fff}.tabs,.buttons,.copy-status{display:none}header{background:#fff;color:#000;padding:0 0 10mm}.panel{display:block}.card{border:0}.paper-page{width:277mm;min-height:190mm;border:0;padding:8mm 10mm;page-break-after:always}.paper-page img{max-height:150mm;object-fit:contain}.paper-page figcaption{font-size:10pt}.summary{display:none}main{max-width:none;margin:0;padding:0}@page{size:A4 landscape;margin:10mm}}",
-  "</style></head><body><header><h1>Diagnostic model jitter</h1><p>Job 21641 · 30 completed runs · 25 retained at MGC ≤ 1.0 × 10⁻⁴</p></header><div id='copyStatus' class='copy-status'>Copied</div>",
+  "</style></head><body><header><h1>Diagnostic model jitter</h1><p>", n_attempted,
+  " attempted · ", n_completed, " completed · ", n_retained,
+  " retained at MGC ≤ 1.0 × 10⁻⁴</p></header><div id='copyStatus' class='copy-status'>Copied</div>",
   "<nav class='tabs'><button class='tab active' data-target='overview'>Overview</button><button class='tab' data-target='figures'>Figures and tables</button></nav><main>",
-  "<section id='overview' class='panel active'><div class='summary'><div class='metric'><b>30</b>completed jitter runs</div><div class='metric'><b>25</b>MGC ≤ 1.0 × 10⁻⁴</div><div class='metric'><b>80%</b>pointwise 10th–90th interval</div></div>",
+  "<section id='overview' class='panel active'><div class='summary'><div class='metric'><b>", n_attempted,
+  "</b>attempted jitter runs</div><div class='metric'><b>", n_completed,
+  "</b>completed native fits</div><div class='metric'><b>", n_retained,
+  "</b>retained at MGC ≤ 1.0 × 10⁻⁴</div></div>",
   "<div class='card'><h2>Jitter analysis</h2><ul class='method-list'>",
   "<li><strong>Design.</strong> Starting values were randomly perturbed to test solution stability for the Diagnostic model. Thirty runs used CV = 0.1; only parameters estimated in the completed Diagnostic model were included.</li>",
   "<li><strong>Fitting schedule.</strong> Perturbations were applied after Phase 1 to parameters already available and estimated. Parameters appearing for the first time in later phases were perturbed before optimisation. Each run then completed the same full phase schedule as the Diagnostic model without jitter.</li>",
   "<li><strong>Perturbation scale.</strong> Positive parameters used mean-preserving proportional changes; unconstrained or near-zero parameters used additive normal changes on their parameter-family scale; bounded parameters remained within their bounds.</li>",
-  "<li><strong>Evaluation.</strong> The maximum gradient component (MGC) is the largest absolute objective-gradient component. Runs with MGC ≤ 1.0 × 10⁻⁴ were retained. Five completed runs failed this criterion and are excluded from the figures and derived-quantity comparisons.</li>",
+  "<li><strong>Evaluation.</strong> The maximum gradient component (MGC) is the largest absolute objective-gradient component. The reproducible run configuration uses 10⁻⁴ for both final optimisation phases. The 25 successful fits with MGC ≤ 1.0 × 10⁻⁴ were retained; four incomplete runs and completed seed 6 were excluded.</li>",
   "</ul><div class='buttons'><button onclick=\"copyText('analysisWord')\">Copy analysis for Word</button><button onclick=\"copyText('analysisLatex')\">Copy analysis for LaTeX</button></div>",
-  "<textarea id='analysisWord' hidden>Jitter analysis. Starting values were randomly perturbed to test solution stability for the Diagnostic model. Thirty runs used CV = 0.1; only parameters estimated in the completed Diagnostic model were included. Each run completed the same full phase schedule as the Diagnostic model without jitter. The maximum gradient component (MGC) is the largest absolute objective-gradient component. Runs with MGC ≤ 1.0 × 10⁻⁴ were retained; five completed runs failed this criterion.</textarea>",
-  "<textarea id='analysisLatex' hidden>\\paragraph{Jitter analysis.} Starting values were randomly perturbed to test solution stability for the Diagnostic model. Thirty runs used CV = 0.1. Each run completed the same full phase schedule as the Diagnostic model without jitter. Runs with MGC $\\leq 1.0 \\times 10^{-4}$ were retained; five completed runs failed this criterion.</textarea>",
-  "</div><div class='card'><h2>Results and interpretation</h2><p>Twenty-five of 30 runs met the convergence criterion. The lowest objective function value among retained runs was 89,469.7, 1,345.2 units lower than the Diagnostic model without jitter; ten retained runs improved on that fit. The minimum MGC was 5.84 × 10⁻⁵.</p><p>Multiple starting values diagnose sensitivity to local minima but do not by themselves identify a global minimum. Results should be considered together with convergence, fit to the data and other model diagnostics.</p><h3>References</h3><p>Carvalho, F. et al. (2021). A cookbook for using model diagnostics in integrated stock assessments. <em>Fisheries Research</em>, 240, 105959. <a href='https://doi.org/10.1016/j.fishres.2021.105959'>doi:10.1016/j.fishres.2021.105959</a></p><p>Subbey, S. (2018). Parameter estimation in stock assessment modelling: caveats with gradient-based algorithms. <em>ICES Journal of Marine Science</em>, 75, 1553–1559. <a href='https://doi.org/10.1093/icesjms/fsy044'>doi:10.1093/icesjms/fsy044</a><div class='buttons'><button onclick=\"copyText('bibtex')\">Copy references as BibTeX</button></div><textarea id='bibtex' hidden>@article{CarvalhoEtAl2021, author={Carvalho, F. and others}, year={2021}, title={A cookbook for using model diagnostics in integrated stock assessments}, journal={Fisheries Research}, volume={240}, pages={105959}, doi={10.1016/j.fishres.2021.105959}}\n@article{Subbey2018, author={Subbey, S.}, year={2018}, title={Parameter estimation in stock assessment modelling: caveats with gradient-based algorithms}, journal={ICES Journal of Marine Science}, volume={75}, pages={1553--1559}, doi={10.1093/icesjms/fsy044}}</textarea></div></div></section>",
+  "<textarea id='analysisWord' hidden>Jitter analysis. Starting values were randomly perturbed to test solution stability for the Diagnostic model. Thirty runs used CV = 0.1 and 26 native fits completed. The reproducible run configuration uses 1.0 × 10⁻⁴ for both final optimisation phases. The 25 successful fits with MGC ≤ 1.0 × 10⁻⁴ were retained; four incomplete runs and completed seed 6 were excluded.</textarea>",
+  "<textarea id='analysisLatex' hidden>\\paragraph{Jitter analysis.} Starting values were randomly perturbed to test solution stability for the Diagnostic model. Thirty runs used CV = 0.1 and 26 native fits completed. The reproducible run configuration uses $1.0 \\times 10^{-4}$ for both final optimisation phases. The 25 successful fits with MGC $\\leq 1.0 \\times 10^{-4}$ were retained; four incomplete runs and completed seed 6 were excluded.</textarea>",
+  "</div><div class='card'><h2>Results and interpretation</h2><p>Twenty-six of 30 native runs completed; the 25 successful fits with MGC ≤ 1.0 × 10⁻⁴ were retained. The lowest objective function value among retained runs was 89,469.7, 1,345.2 units lower than the Diagnostic model without jitter; ten retained runs improved on that fit. The minimum MGC was 5.84 × 10⁻⁵.</p><p>Multiple starting values diagnose sensitivity to local minima but do not by themselves identify a global minimum. Results should be considered together with convergence, fit to the data and other model diagnostics.</p><h3>References</h3><p>Carvalho, F. et al. (2021). A cookbook for using model diagnostics in integrated stock assessments. <em>Fisheries Research</em>, 240, 105959. <a href='https://doi.org/10.1016/j.fishres.2021.105959'>doi:10.1016/j.fishres.2021.105959</a></p><p>Subbey, S. (2018). Parameter estimation in stock assessment modelling: caveats with gradient-based algorithms. <em>ICES Journal of Marine Science</em>, 75, 1553–1559. <a href='https://doi.org/10.1093/icesjms/fsy044'>doi:10.1093/icesjms/fsy044</a><div class='buttons'><button onclick=\"copyText('bibtex')\">Copy references as BibTeX</button></div><textarea id='bibtex' hidden>@article{CarvalhoEtAl2021, author={Carvalho, F. and others}, year={2021}, title={A cookbook for using model diagnostics in integrated stock assessments}, journal={Fisheries Research}, volume={240}, pages={105959}, doi={10.1016/j.fishres.2021.105959}}\n@article{Subbey2018, author={Subbey, S.}, year={2018}, title={Parameter estimation in stock assessment modelling: caveats with gradient-based algorithms}, journal={ICES Journal of Marine Science}, volume={75}, pages={1553--1559}, doi={10.1093/icesjms/fsy044}}</textarea></div></div></section>",
   "<section id='figures' class='panel'>", figure_html,
   "<div class='card'><div class='buttons'><button onclick=\"copyText('wordData')\">Copy table for Word</button><button onclick=\"copyText('latexData')\">Copy LaTeX</button></div>",
-  "<p><b>Table.</b> Jitter results for the Diagnostic model. Of 30 jitter runs, 25 met the convergence criterion MGC ≤ 1.0 × 10⁻⁴. The unjittered Diagnostic model had an objective-function value of 90,814.9 and an MGC of 9.68 × 10⁻⁵.</p>",
-  "<table><thead><tr><th>Accepted fit</th><th>Objective function value</th><th>Δ objective</th><th>MGC</th></tr></thead><tbody>", table_rows_html, "</tbody></table>",
+  "<p><b>Table.</b> Jitter results for the Diagnostic model. Of 30 attempted runs, 26 completed and the 25 fits with MGC ≤ 1.0 × 10⁻⁴ were retained. The unjittered Diagnostic model had an objective-function value of 90,814.9 and an MGC of 9.68 × 10⁻⁵.</p>",
+  "<table><thead><tr><th>Seed</th><th>Objective function value</th><th>Δ objective</th><th>MGC</th></tr></thead><tbody>", table_rows_html, "</tbody></table>",
   "<textarea id='wordData' hidden>", word_table_text, "</textarea><textarea id='latexData' hidden>", latex_table, "</textarea></div></section></main>",
   "<script>document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tab,.panel').forEach(x=>x.classList.remove('active'));b.classList.add('active');document.getElementById(b.dataset.target).classList.add('active')});document.querySelectorAll('a[href^=\"http\"]').forEach(a=>{a.target='_blank';a.rel='noopener noreferrer'});function flash(){const s=document.getElementById('copyStatus');s.classList.add('show');setTimeout(()=>s.classList.remove('show'),1200)}function copyText(id){navigator.clipboard.writeText(document.getElementById(id).value).then(flash)}function copyFigure(id,cap){navigator.clipboard.writeText(document.getElementById(cap).innerText).then(flash)}function saveImage(id,name){const a=document.createElement('a');a.href=document.getElementById(id).src;a.download=name;a.click();flash()}</script>",
   "</body></html>"

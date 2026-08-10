@@ -34,11 +34,199 @@ max_grad <- vapply(results, function(x) {
   value <- suppressWarnings(as.numeric(x$max_grad)[1])
   if (length(value) == 0L) NA_real_ else value
 }, numeric(1))
-included <- completed & is.finite(max_grad) & max_grad <= 1e-4
+included <- completed & is.finite(max_grad) & abs(max_grad) <= 1e-4
 included_seeds <- sort(seeds[included])
 expected_seeds <- as.integer(c(1:3, 5, 7:22, 25:26, 28:30))
 if (!identical(included_seeds, expected_seeds)) {
   stop("The included jitter set does not match the verified 25-fit set.", call. = FALSE)
+}
+if (
+  sum(completed) != 26L ||
+    !identical(sort(seeds[!completed]), as.integer(c(4, 23, 24, 27))) ||
+    !identical(sort(seeds[completed & !included]), 6L)
+) {
+  stop("The 30 attempted runs must resolve to 26 completed and the exact 25 retained seeds.", call. = FALSE)
+}
+
+sha256_file <- function(path) {
+  output <- system2("sha256sum", shQuote(path), stdout = TRUE, stderr = TRUE)
+  status <- attr(output, "status")
+  if (!is.null(status) && status != 0L) {
+    stop("sha256sum failed for ", path, ".", call. = FALSE)
+  }
+  sub("[[:space:]].*$", "", output[[1L]])
+}
+
+# The native executable, common case files and fitted starting point are the
+# exact files used to produce the retained jitter fits.  Keep these anchors in
+# executable validation code as well as in data/SHA256SUMS.
+bundle_hashes <- c(
+  "data/diagnostic/mfcl/mfclo64" = "f5bc1e232a86e51f920bce7271d8e0930d0b160e4d18dc46de44078f0fa24cd0",
+  "data/diagnostic/mfcl/bet.frq" = "d0d84f0a498e6a62681f2a58ffc1ba53dab9e3d6af856b4ad1fd907196250004",
+  "data/diagnostic/mfcl/bet.ini" = "5292938d4743c1dfdd2f1a095c1aa87482c9c17f78b8d879671fe6851d58646f",
+  "data/diagnostic/mfcl/bet.tag" = "b140e66eb52f2b7e022ef2c562134f8bc9baf3dede18ce95283a001acd2b013f",
+  "data/diagnostic/mfcl/bet.age_length" = "426859b825bd815aa69c8d97c9dd93097027ed1eb6b9e444d88b69562097a00c",
+  "data/diagnostic/mfcl/bet.reg_scaling" = "5f047ddb4053d1f6df9ace18e85e440b11553de246d024ce8138b427f5f9f7e3",
+  "data/diagnostic/mfcl/mfcl.cfg" = "2ec8a291fae62c6f37541aec1de37444626d42b3290b371bb42b63d510034eae",
+  "data/diagnostic/mfcl/doitall.sh" = "5c53802daf44e700ee91aa8108f0b2289473c0344d7feecf04cab458dc49ca77",
+  "data/diagnostic/mfcl/model-inputs/S0.90-F2.conf" = "ce2c1dbf67d9eecb3ceaeda81ac9124cb7dbe81f42181f6abfb8f246b4f3a048",
+  "data/diagnostic/mfcl/selectivity-models/F2.csv" = "790e21a01054349a20f4fbbb7db926f6452d059344815a3a9d6a5de51db3310a",
+  "data/diagnostic/reproduction/fitted-reference/final.par" = "21dcaea9db8c89ddc8c29fa3c3a5e514b50bef6e26587c168c00c05f35fbebc3",
+  "data/diagnostic/reproduction/fitted-reference/indepvar.rpt" = "5792c57d7bcce5e679faa5adac63e6d20886fc478f03a29277814616e313b490",
+  "data/diagnostic/reproduction/phase1-reference/mfk_phase1_baseline.par" = "da7f8afd374bbb02906ca40dfc6f77e25eb18615434fe5ac3e2a54976648d6c0"
+)
+if (!all(file.exists(names(bundle_hashes)))) {
+  stop("The exact native MFCL reproduction bundle is incomplete.", call. = FALSE)
+}
+expected_mfcl_files <- sort(sub(
+  "^data/diagnostic/mfcl/", "", names(bundle_hashes)[
+    grepl("^data/diagnostic/mfcl/", names(bundle_hashes))
+  ]
+))
+observed_mfcl_files <- sort(list.files(
+  "data/diagnostic/mfcl", recursive = TRUE, all.files = FALSE
+))
+if (!identical(observed_mfcl_files, expected_mfcl_files)) {
+  stop("The shared native MFCL directory contains missing or unexpected files.", call. = FALSE)
+}
+observed_bundle_hashes <- vapply(names(bundle_hashes), sha256_file, character(1L))
+if (!identical(unname(observed_bundle_hashes), unname(bundle_hashes))) {
+  stop("A native MFCL reproduction file differs from its verified source.", call. = FALSE)
+}
+if (
+  file.access("data/diagnostic/mfcl/mfclo64", mode = 1L) != 0L ||
+    file.access("data/diagnostic/mfcl/doitall.sh", mode = 1L) != 0L
+) {
+  stop("The bundled native MFCL executable and doitall.sh must be executable.", call. = FALSE)
+}
+doitall_lines <- readLines("data/diagnostic/mfcl/doitall.sh", warn = FALSE)
+if (
+  !any(grepl(
+    "phase10_11_convergence=${BET_PHASE10_11_CONVERGENCE:--4}",
+    doitall_lines,
+    fixed = TRUE
+  )) ||
+    sum(trimws(doitall_lines) == "1 50 $phase10_11_convergence") != 2L
+) {
+  stop("doitall.sh must apply the 1e-4 convergence setting to both final phases.", call. = FALSE)
+}
+
+plans_file <- "data/diagnostic/reproduction/jitter-plans.rds"
+plans <- readRDS(plans_file)
+if (
+  !identical(plans$schema, "ofp-sam-bet-2026-jitter-plans.v1") ||
+    !identical(plans$design, "structure_aware_single_cv_v1") ||
+    !identical(as.numeric(plans$cv), 0.1) ||
+    !identical(as.integer(plans$seeds), expected_seeds) ||
+    !identical(plans$mfclkit_commit, "c8d80c7d915441dff16dca101be6f452d0fb3482") ||
+    !identical(names(plans$plans), as.character(expected_seeds))
+) {
+  stop("The exact 25-seed jitter plan has unexpected provenance or settings.", call. = FALSE)
+}
+required_plan_columns <- c(
+  "Index", "Var_name", "family", "before", "after", "target",
+  "jitter_method", "jitter_space", "nominal_cv", "seed"
+)
+for (seed in expected_seeds) {
+  plan <- plans$plans[[as.character(seed)]]
+  if (
+    !is.data.frame(plan) || nrow(plan) != 1997L ||
+      !all(required_plan_columns %in% names(plan)) ||
+      !identical(sort(as.integer(plan$Index)), seq_len(1997L)) ||
+      !all(as.integer(plan$seed) == seed) ||
+      !all(is.finite(plan$before)) || !all(is.finite(plan$after)) ||
+      !all(plan$nominal_cv == 0.1)
+  ) {
+    stop("The exact jitter plan is invalid for seed ", seed, ".", call. = FALSE)
+  }
+}
+
+expected_phase1_files <- sort(c(
+  "fitted_active_xinit.rpt", "indepvar.rpt", "jitter_deferred_mapping.rds",
+  "jitter_deferred_xinit.rpt", "jitter_fitted_active_mapping.rds",
+  "jitter_mask_coverage.csv", "jitter_phase1_mapping.rds",
+  "mfk_phase1_baseline.par", "phase1_reference.rds", "phase1_xinit.rpt",
+  "xinit.rpt"
+))
+observed_phase1_files <- sort(list.files(
+  "data/diagnostic/reproduction/phase1-reference",
+  recursive = FALSE,
+  all.files = FALSE
+))
+if (!identical(observed_phase1_files, expected_phase1_files)) {
+  stop("The public Phase-1 reference set contains missing or unexpected files.", call. = FALSE)
+}
+if (!identical(
+  sort(list.files(
+    "data/diagnostic/reproduction/fitted-reference",
+    recursive = FALSE,
+    all.files = FALSE
+  )),
+  c("final.par", "indepvar.rpt")
+)) {
+  stop("The fitted reproduction reference must contain only final.par and indepvar.rpt.", call. = FALSE)
+}
+
+par_files <- list.files(
+  file.path(model_dir, "jitter"),
+  pattern = "^jittered_out_[0-9]+[.]par$",
+  recursive = TRUE,
+  full.names = TRUE
+)
+par_seeds <- suppressWarnings(as.integer(sub(
+  "^jittered_out_([0-9]+)[.]par$", "\\1", basename(par_files)
+)))
+if (
+  length(par_files) != 25L || anyNA(par_seeds) || anyDuplicated(par_seeds) ||
+    !identical(sort(par_seeds), expected_seeds)
+) {
+  stop("Recovered last PAR files must be exactly the 25 retained seeds.", call. = FALSE)
+}
+
+native_manifest_file <- file.path(model_dir, "native-par-validation.csv")
+native_manifest <- utils::read.csv(native_manifest_file, check.names = FALSE)
+expected_par_paths <- file.path(
+  "data", "diagnostic", "jitter", paste0("jitter_seed_", expected_seeds),
+  paste0("jittered_out_", expected_seeds, ".par")
+)
+required_native_columns <- c(
+  "seed", "par_file", "par_sha256", "expected_obj_fun", "native_obj_fun",
+  "objective_abs_diff", "max_grad", "native_status",
+  "evaluated_par_created", "plot_rep_created", "mfcl_version", "mfcl_sha256"
+)
+if (
+  !all(required_native_columns %in% names(native_manifest)) ||
+    !identical(as.integer(native_manifest$seed), expected_seeds) ||
+    !identical(as.character(native_manifest$par_file), expected_par_paths) ||
+    !all(native_manifest$native_status %in% c(0L, 3L)) ||
+    !all(native_manifest$evaluated_par_created %in% TRUE) ||
+    !all(native_manifest$plot_rep_created %in% TRUE) ||
+    !all(native_manifest$mfcl_version == "2.2.7.9") ||
+    !all(native_manifest$mfcl_sha256 == bundle_hashes[["data/diagnostic/mfcl/mfclo64"]]) ||
+    any(native_manifest$objective_abs_diff > 1e-6)
+) {
+  stop("The native MFCL validation manifest is incomplete or invalid.", call. = FALSE)
+}
+manifest_results <- match(native_manifest$seed, seeds)
+if (
+  !isTRUE(all.equal(
+    native_manifest$expected_obj_fun,
+    vapply(results[manifest_results], function(x) as.numeric(x$obj_fun)[[1L]], numeric(1L)),
+    tolerance = 1e-10,
+    check.attributes = FALSE
+  )) ||
+    !isTRUE(all.equal(
+      native_manifest$max_grad,
+      vapply(results[manifest_results], function(x) as.numeric(x$max_grad)[[1L]], numeric(1L)),
+      tolerance = 1e-12,
+      check.attributes = FALSE
+    )) ||
+    !identical(
+      as.character(native_manifest$par_sha256),
+      unname(vapply(expected_par_paths, sha256_file, character(1L)))
+    )
+) {
+  stop("Recovered PAR files do not match their compact results and native audit.", call. = FALSE)
 }
 
 regional <- readRDS(regional_file)
@@ -254,7 +442,13 @@ public_files <- c(
   regional_file,
   stock_status_file,
   stock_status_endpoint_file,
-  result_files
+  result_files,
+  list.files(
+    "data/diagnostic/reproduction",
+    pattern = "[.]rds$",
+    recursive = TRUE,
+    full.names = TRUE
+  )
 )
 for (file in public_files) {
   text <- collect_text(readRDS(file))
@@ -266,6 +460,7 @@ for (file in public_files) {
 }
 
 message(
-  "Validated 30 jitter payloads: 25 included at MGC <= 1.0e-4; ",
-  "five excluded. Native BET endpoint and public-data hygiene checks passed."
+  "Validated 30 attempted jitter payloads: 26 completed and the exact 25-seed ",
+  "MGC <= 1.0e-4 set was retained. Recovered PAR, native MFCL, BET endpoint ",
+  "and public-data hygiene checks passed."
 )

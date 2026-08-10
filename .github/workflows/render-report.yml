@@ -5,9 +5,13 @@ on:
     branches: [main]
     tags: ["v*"]
     paths:
+      - "README.md"
       - "data/**"
       - "report/**"
       - "run-report"
+      - "run-reproduce-jitter"
+      - "verify-native-pars"
+      - "scripts/**"
       - ".github/workflows/render-report.yml"
   workflow_dispatch:
 
@@ -33,7 +37,8 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Verify TunaFlow 2.7 report runtime
-        run: Rscript -e 'required <- c("ggplot2", "dplyr", "scales", "jsonlite", "patchwork"); stopifnot(all(vapply(required, requireNamespace, logical(1), quietly = TRUE)))'
+        run: |
+          Rscript -e 'required <- c("ggplot2", "dplyr", "scales", "jsonlite", "patchwork", "mfclkit", "FLR4MFCL"); stopifnot(all(vapply(required, requireNamespace, logical(1), quietly = TRUE))); stopifnot(identical(as.character(packageVersion("mfclkit")), "0.0.0.9040")); stopifnot(identical(packageDescription("mfclkit")$RemoteSha, "44abaaa05692db7ae3e0ec0e52250c51714d1e50")); stopifnot(identical(as.character(packageVersion("FLR4MFCL")), "1.8.0")); stopifnot(identical(packageDescription("FLR4MFCL")$RemoteSha, "5a29a9b3246bd19dcff350ded7e0e5099145da5e"))'
 
       - name: Validate and render
         run: ./run-report

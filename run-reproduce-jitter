@@ -1,0 +1,131 @@
+#!/bin/sh
+set -eu
+
+image='ghcr.io/pacificcommunity/tuna-flow-private:v2.7@sha256:4fee4c40cb6439ff920b1dd233a84bf19d5cc0e37278c99ceff3fd79cb9c8852'
+
+usage()
+{
+  cat <<'EOF'
+Usage: ./run-reproduce-jitter [--run] --output /absolute/fresh/directory
+
+By default, validate the immutable runtime and references, recreate the shared
+Phase-1 baseline, prepare all 25 accepted jitter starts, and stop before the
+long native fits. Pass --run to execute and numerically validate all 25 fits.
+
+The output directory must be absolute, outside this repository, and absent.
+EOF
+}
+
+run_native=false
+output=
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --run)
+      run_native=true
+      ;;
+    --output)
+      shift
+      if [ "$#" -eq 0 ]; then
+        echo 'Missing value after --output.' >&2
+        usage >&2
+        exit 2
+      fi
+      output=$1
+      ;;
+    -h|--help)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown argument: $1" >&2
+      usage >&2
+      exit 2
+      ;;
+  esac
+  shift
+done
+
+if [ -z "$output" ]; then
+  echo 'An output directory is required.' >&2
+  usage >&2
+  exit 2
+fi
+case "$output" in
+  /*) ;;
+  *)
+    echo 'The output directory must be an absolute path.' >&2
+    exit 2
+    ;;
+esac
+
+here=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
+output_parent=$(dirname -- "$output")
+output_name=$(basename -- "$output")
+if [ ! -d "$output_parent" ]; then
+  echo "The output parent directory does not exist: $output_parent" >&2
+  exit 2
+fi
+output_parent=$(CDPATH= cd -- "$output_parent" && pwd -P)
+case "$output_name" in
+  ''|.|..)
+    echo 'Refusing an invalid output directory name.' >&2
+    exit 2
+    ;;
+esac
+output_path=$output_parent/$output_name
+
+case "$output_path" in
+  "$here"|"$here"/*)
+    echo 'The output directory must be outside the repository.' >&2
+    exit 2
+    ;;
+esac
+if [ -e "$output_path" ] || [ -L "$output_path" ]; then
+  echo "The output directory must not already exist: $output_path" >&2
+  exit 2
+fi
+
+if ! command -v docker >/dev/null 2>&1; then
+  echo 'Docker is required to run the pinned private image.' >&2
+  exit 1
+fi
+if ! docker image inspect "$image" >/dev/null 2>&1; then
+  echo "The pinned private image is not present locally: $image" >&2
+  echo 'Authenticate to ghcr.io and pull that exact digest, then retry.' >&2
+  exit 1
+fi
+expected_digest=${image##*@}
+image_digests=$(docker image inspect "$image" --format '{{range .RepoDigests}}{{println .}}{{end}}')
+case "$image_digests" in
+  *"@$expected_digest"*) ;;
+  *)
+    echo "Docker did not resolve the required image digest: $expected_digest" >&2
+    exit 1
+    ;;
+esac
+
+mkdir -m 0700 -- "$output_path"
+output_path=$(CDPATH= cd -- "$output_path" && pwd -P)
+
+mode_arg=
+if [ "$run_native" = true ]; then
+  mode_arg=--run
+fi
+
+exec docker run --rm --pull never --network none --read-only \
+  --cpus 2 --memory 8g --pids-limit 512 \
+  --user "$(id -u):$(id -g)" \
+  --tmpfs /tmp:rw,nosuid,nodev,exec,size=4g \
+  --mount "type=bind,src=$here,dst=/repo,readonly" \
+  --mount "type=bind,src=$output_path,dst=/output" \
+  --workdir /output \
+  --env TMPDIR=/tmp \
+  --env LANG=en_US.UTF-8 \
+  --env LC_NUMERIC=C \
+  --env TZ=UTC \
+  --env R_ENVIRON_USER=/dev/null \
+  --env R_PROFILE_USER=/dev/null \
+  --env BET_JITTER_IMAGE="$image" \
+  --entrypoint /usr/local/bin/Rscript \
+  "$image" /repo/scripts/reproduce-jitter.R \
+  --repo /repo --output /output ${mode_arg}
