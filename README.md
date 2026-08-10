@@ -22,7 +22,9 @@ audited.
 - `data/diagnostic/jitter/` contains the compact result payloads and the exact
   `jittered_out_<seed>.par` file for each retained seed.
 - `data/diagnostic/mfcl/` contains one shared copy of native MFCL 2.2.7.9,
-  `doitall.sh`, and the common BET input/configuration files.
+  `doitall.sh`, and the common BET input/configuration files. The public
+  `bet.ini` itself contains the Diagnostic model value `sv(29) = 0.90`; the
+  workflow keeps it fixed and audits it in every phase.
 - `data/diagnostic/reproduction/` contains the fitted starting point, the
   independently recovered Phase-1 reference, and the exact 25-seed jitter
   plans.
@@ -30,7 +32,8 @@ audited.
   objective-parity check for every recovered PAR.
 
 All data files are covered by `data/SHA256SUMS`. Rendering the report never
-refits the model.
+refits the model. All 25 retained final PAR files also contain `sv(29) = 0.90`
+with age flag 162 fixed at zero.
 
 ## Verify the recovered PAR files
 

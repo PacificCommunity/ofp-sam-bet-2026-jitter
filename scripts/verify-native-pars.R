@@ -65,6 +65,44 @@ par_scalar <- function(path, label) {
   value
 }
 
+numeric_row_after <- function(lines, marker, source) {
+  marker_index <- which(trimws(lines) == marker)
+  if (length(marker_index) != 1L || marker_index[[1L]] >= length(lines)) {
+    stop(source, " is missing exactly one ", marker, ".", call. = FALSE)
+  }
+  value_index <- marker_index[[1L]] + 1L
+  while (value_index <= length(lines) && !nzchar(trimws(lines[[value_index]]))) {
+    value_index <- value_index + 1L
+  }
+  values <- scan(text = lines[[value_index]], quiet = TRUE)
+  if (!length(values) || any(!is.finite(values))) {
+    stop(source, " has an invalid numeric row after ", marker, ".", call. = FALSE)
+  }
+  values
+}
+
+assert_fixed_steepness <- function(path) {
+  lines <- readLines(path, warn = FALSE)
+  growth <- numeric_row_after(lines, "# Seasonal growth parameters", path)
+  age_flags <- numeric_row_after(lines, "# age flags", path)
+  if (
+    length(growth) < 29L || abs(growth[[29L]] - 0.90) > 1e-12 ||
+      length(age_flags) < 162L || age_flags[[162L]] != 0
+  ) {
+    stop(path, " is not fixed at sv(29)=0.90 with age flag 162=0.", call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
+ini_values <- numeric_row_after(
+  readLines(file.path(mfcl_dir, "bet.ini"), warn = FALSE),
+  "# sv(29)",
+  file.path(mfcl_dir, "bet.ini")
+)
+if (length(ini_values) != 1L || abs(ini_values[[1L]] - 0.90) > 1e-12) {
+  stop("The public bet.ini must itself contain sv(29)=0.90.", call. = FALSE)
+}
+
 par_files <- Sys.glob(file.path(
   repo, "data", "diagnostic", "jitter", "jitter_seed_*", "jittered_out_*.par"
 ))
@@ -178,6 +216,7 @@ for (position in seq_along(accepted_seeds)) {
 
   par_obj <- par_scalar(par_file, "# Objective function value")
   par_grad <- par_scalar(par_file, "# Maximum magnitude gradient value")
+  assert_fixed_steepness(par_file)
   par_compile_version <- par_scalar(
     par_file, "# MULTIFAN-CL compilation version number"
   )
@@ -232,6 +271,7 @@ for (position in seq_along(accepted_seeds)) {
     ".*Total func[[:space:]]+", "", tail(total_lines, 1L)
   )))
   evaluated_obj <- par_scalar(evaluated_par, "# Objective function value")
+  assert_fixed_steepness(evaluated_par)
   if (
     length(total_lines) < 1L || length(native_obj) != 1L || !is.finite(native_obj) ||
       abs(native_obj - expected_obj) > 1e-6 ||

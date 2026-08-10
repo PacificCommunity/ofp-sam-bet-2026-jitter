@@ -408,34 +408,18 @@ fi
 #  PHASE 0 - create initial par file
 # -----------------------------------
 
-# Write the selected fixed steepness into the actual INI passed to MFCL. The
-# original Job 19835 INI is never edited; only sv(29) is changed in this copy.
-awk -v steepness="$fixed_steepness" '
-  /^# sv[(]29[)]/ {
-    print
-    replace_next=1
-    next
-  }
-  replace_next {
-    if (NF != 1) exit 37
-    print steepness
-    replaced++
-    replace_next=0
-    next
-  }
-  { print }
-  END { if (replaced != 1) exit 37 }
-' bet.ini > bet.model.ini
-
-ini_steepness=$(awk '/^# sv[(]29[)]/{getline; print $1; exit}' bet.model.ini)
+# The public diagnostic INI must already contain the selected fixed
+# steepness. Copy it unchanged to the run-local filename passed to MFCL.
+ini_steepness=$(awk '/^# sv[(]29[)]/{getline; print $1; exit}' bet.ini)
 if ! awk -v observed="$ini_steepness" -v expected="$fixed_steepness" 'BEGIN {
   difference=observed-expected
   if (difference < 0) difference=-difference
   exit(difference <= 1e-12 ? 0 : 1)
 }'; then
-  echo "Failed to write fixed steepness $fixed_steepness to bet.model.ini." >&2
+  echo "bet.ini sv(29) is $ini_steepness; expected fixed steepness $fixed_steepness." >&2
   exit 37
 fi
+cp bet.ini bet.model.ini
 
 $program_path bet.frq bet.model.ini 00.par -makepar
 

@@ -63,12 +63,12 @@ sha256_file <- function(path) {
 bundle_hashes <- c(
   "data/diagnostic/mfcl/mfclo64" = "f5bc1e232a86e51f920bce7271d8e0930d0b160e4d18dc46de44078f0fa24cd0",
   "data/diagnostic/mfcl/bet.frq" = "d0d84f0a498e6a62681f2a58ffc1ba53dab9e3d6af856b4ad1fd907196250004",
-  "data/diagnostic/mfcl/bet.ini" = "5292938d4743c1dfdd2f1a095c1aa87482c9c17f78b8d879671fe6851d58646f",
+  "data/diagnostic/mfcl/bet.ini" = "fbd064c3d0ccb4d2e1b9beb06fe3eacf0180677821e6a1773d20b308474d984e",
   "data/diagnostic/mfcl/bet.tag" = "b140e66eb52f2b7e022ef2c562134f8bc9baf3dede18ce95283a001acd2b013f",
   "data/diagnostic/mfcl/bet.age_length" = "426859b825bd815aa69c8d97c9dd93097027ed1eb6b9e444d88b69562097a00c",
   "data/diagnostic/mfcl/bet.reg_scaling" = "5f047ddb4053d1f6df9ace18e85e440b11553de246d024ce8138b427f5f9f7e3",
   "data/diagnostic/mfcl/mfcl.cfg" = "2ec8a291fae62c6f37541aec1de37444626d42b3290b371bb42b63d510034eae",
-  "data/diagnostic/mfcl/doitall.sh" = "5c53802daf44e700ee91aa8108f0b2289473c0344d7feecf04cab458dc49ca77",
+  "data/diagnostic/mfcl/doitall.sh" = "5d06f1b3b3df5fe6c3dfb5552d9236e7764f3de4c458df9f2c2e68b94bbd9a8b",
   "data/diagnostic/mfcl/model-inputs/S0.90-F2.conf" = "ce2c1dbf67d9eecb3ceaeda81ac9124cb7dbe81f42181f6abfb8f246b4f3a048",
   "data/diagnostic/mfcl/selectivity-models/F2.csv" = "790e21a01054349a20f4fbbb7db926f6452d059344815a3a9d6a5de51db3310a",
   "data/diagnostic/reproduction/fitted-reference/final.par" = "21dcaea9db8c89ddc8c29fa3c3a5e514b50bef6e26587c168c00c05f35fbebc3",
@@ -93,6 +93,52 @@ observed_bundle_hashes <- vapply(names(bundle_hashes), sha256_file, character(1L
 if (!identical(unname(observed_bundle_hashes), unname(bundle_hashes))) {
   stop("A native MFCL reproduction file differs from its verified source.", call. = FALSE)
 }
+
+numeric_row_after <- function(lines, marker, source) {
+  marker_index <- which(trimws(lines) == marker)
+  if (length(marker_index) != 1L || marker_index[[1L]] >= length(lines)) {
+    stop(source, " is missing exactly one ", marker, ".", call. = FALSE)
+  }
+  value_index <- marker_index[[1L]] + 1L
+  while (value_index <= length(lines) && !nzchar(trimws(lines[[value_index]]))) {
+    value_index <- value_index + 1L
+  }
+  values <- scan(text = lines[[value_index]], quiet = TRUE)
+  if (!length(values) || any(!is.finite(values))) {
+    stop(source, " has an invalid numeric row after ", marker, ".", call. = FALSE)
+  }
+  values
+}
+
+assert_fixed_steepness <- function(lines, source) {
+  growth <- numeric_row_after(lines, "# Seasonal growth parameters", source)
+  age_flags <- numeric_row_after(lines, "# age flags", source)
+  if (
+    length(growth) < 29L || abs(growth[[29L]] - 0.90) > 1e-12 ||
+      length(age_flags) < 162L || age_flags[[162L]] != 0
+  ) {
+    stop(source, " is not fixed at sv(29)=0.90 with age flag 162=0.", call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
+model_config <- readLines(
+  "data/diagnostic/mfcl/model-inputs/S0.90-F2.conf", warn = FALSE
+)
+if (
+  sum(model_config == "MODEL_ID=S0.90-F2") != 1L ||
+    sum(model_config == "STEEPNESS=0.90") != 1L
+) {
+  stop("The jitter configuration must be exactly S0.90-F2 at steepness 0.90.", call. = FALSE)
+}
+ini_values <- numeric_row_after(
+  readLines("data/diagnostic/mfcl/bet.ini", warn = FALSE),
+  "# sv(29)",
+  "data/diagnostic/mfcl/bet.ini"
+)
+if (length(ini_values) != 1L || abs(ini_values[[1L]] - 0.90) > 1e-12) {
+  stop("The public bet.ini must itself contain sv(29)=0.90.", call. = FALSE)
+}
 if (
   file.access("data/diagnostic/mfcl/mfclo64", mode = 1L) != 0L ||
     file.access("data/diagnostic/mfcl/doitall.sh", mode = 1L) != 0L
@@ -106,9 +152,13 @@ if (
     doitall_lines,
     fixed = TRUE
   )) ||
-    sum(trimws(doitall_lines) == "1 50 $phase10_11_convergence") != 2L
+    sum(trimws(doitall_lines) == "1 50 $phase10_11_convergence") != 2L ||
+    sum(trimws(doitall_lines) == "cp bet.ini bet.model.ini") != 1L
 ) {
-  stop("doitall.sh must apply the 1e-4 convergence setting to both final phases.", call. = FALSE)
+  stop(
+    "doitall.sh must use the public INI unchanged and apply 1e-4 to both final phases.",
+    call. = FALSE
+  )
 }
 
 plans_file <- "data/diagnostic/reproduction/jitter-plans.rds"
@@ -181,6 +231,14 @@ if (
     !identical(sort(par_seeds), expected_seeds)
 ) {
   stop("Recovered last PAR files must be exactly the 25 retained seeds.", call. = FALSE)
+}
+semantic_par_files <- c(
+  par_files,
+  "data/diagnostic/reproduction/fitted-reference/final.par",
+  "data/diagnostic/reproduction/phase1-reference/mfk_phase1_baseline.par"
+)
+for (par_file in semantic_par_files) {
+  assert_fixed_steepness(readLines(par_file, warn = FALSE), par_file)
 }
 
 native_manifest_file <- file.path(model_dir, "native-par-validation.csv")
@@ -323,6 +381,19 @@ if (!requireNamespace("FLR4MFCL", quietly = TRUE)) {
   stop("FLR4MFCL is required to audit the native MFCL endpoints.", call. = FALSE)
 }
 model_payload <- readRDS(payload_file)
+embedded_par <- model_payload$artifacts$files$par
+if (!is.list(embedded_par) || !is.raw(embedded_par$bytes)) {
+  stop("The compact model payload is missing its embedded final PAR.", call. = FALSE)
+}
+embedded_par_bytes <- if (identical(embedded_par$compression, "none")) {
+  embedded_par$bytes
+} else {
+  memDecompress(embedded_par$bytes, type = embedded_par$compression)
+}
+assert_fixed_steepness(
+  strsplit(rawToChar(embedded_par_bytes), "\n", fixed = TRUE)[[1L]],
+  "data/diagnostic/model_payload.rds embedded final.par"
+)
 unpack_object <- function(role) {
   object <- model_payload$object_cache$objects[[role]]
   if (!is.list(object) || !is.raw(object$bytes)) {
