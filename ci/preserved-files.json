@@ -31,8 +31,8 @@
     {
       "path": "README.md",
       "mode": "100644",
-      "git_blob": "954155f3c8718366da6bd56eeb4fc069633f0cb7",
-      "sha256": "db97bfed2b22e5adf188a6eec1c46a21be352fed088916d13428f38aab3b842c"
+      "git_blob": "dadf41dacc00cfaba1bb559c9c7f50c2f7dd9ad3",
+      "sha256": "58041c5ce0c03a51a026592513d10b92d14ffc57f3ec4226e132a2e3403ebe1b"
     },
     {
       "path": "data/SHA256SUMS",
@@ -681,6 +681,15 @@
       "mode": "100755",
       "git_blob": "f95c5b4ce57b38cd1ce392625888ed521aecc1f9",
       "sha256": "17e4eeb454306c19105ff6c7c151471f73e71288327d4020eba86e8b25c15597"
+    }
+  ],
+  "approved_updates": [
+    {
+      "path": "README.md",
+      "reason": "Condense reader and reproduction instructions; preserve the original scientific files, links and heading anchors. Detailed methods are retained under docs/.",
+      "original_sha256": "db97bfed2b22e5adf188a6eec1c46a21be352fed088916d13428f38aab3b842c",
+      "original_git_blob": "954155f3c8718366da6bd56eeb4fc069633f0cb7",
+      "expected_sha256": "58041c5ce0c03a51a026592513d10b92d14ffc57f3ec4226e132a2e3403ebe1b"
     }
   ]
 }
