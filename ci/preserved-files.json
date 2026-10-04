@@ -25,14 +25,14 @@
     {
       "path": "Makefile",
       "mode": "100644",
-      "git_blob": "52f2ceec2cbb24cba26f8ccbdd2435fd0fcbc1c3",
-      "sha256": "79ce4af40d4d3e1b7c7e60d0db789d6049679f17dbc098bdaeda196d91d88dd5"
+      "git_blob": "76e7d496574712fb94a2bf980dea0daabaef18f4",
+      "sha256": "3535d71a0650ef81f44f1699a766ee9c2d009d7512dfdfb4f8a6d152e32e3259"
     },
     {
       "path": "README.md",
       "mode": "100644",
-      "git_blob": "27d30bf4e30baf1c7fbfe35da6b7786918a3d776",
-      "sha256": "801a9dd49a7a4e3eb6ed47061fba33346ad1007725272b5b994b194a533f50e7"
+      "git_blob": "2f11c58f698d567edb1866f7f968c39d3da42ced",
+      "sha256": "f448e54056c9485dc842a1743948cb16fbad40458f10660c2a8c440e91c1ec25"
     },
     {
       "path": "data/SHA256SUMS",

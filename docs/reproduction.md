@@ -64,42 +64,29 @@ cd bet-jitter-native
 Run:
 
 ```sh
-./verify-native-pars
+make verify
+make native-check
 ```
 
 The verifier checks the executable and input bundle, loads and evaluates every
 retained PAR with native MFCL in an isolated temporary directory, compares its
-objective with the compact result, and rewrites the deterministic validation
+objective with the compact result, without rewriting the archived validation
 manifest. Native status 3 and the temporary `selblocks.dat` output are normal
 for this zero-iteration validation call.
 
-To retain native outputs for one saved fit, first run `./verify-native-pars`,
-then stage a fresh directory in the pinned 64-bit Linux runtime. For seed 1:
+To retain outputs from one saved PAR on Linux x86-64, with R installed:
 
 ```sh
-mkdir /tmp/bet-jitter-seed-1
-cp data/diagnostic/mfcl/bet.age_length data/diagnostic/mfcl/bet.frq \
-  data/diagnostic/mfcl/bet.ini data/diagnostic/mfcl/bet.reg_scaling \
-  data/diagnostic/mfcl/bet.tag data/diagnostic/mfcl/mfcl.cfg \
-  data/diagnostic/mfcl/mfclo64 /tmp/bet-jitter-seed-1/
-cp data/diagnostic/jitter/jitter_seed_1/jittered_out_1.par \
-  /tmp/bet-jitter-seed-1/input.par
-cd /tmp/bet-jitter-seed-1
-./mfclo64 bet.frq input.par evaluated.par -file - <<'EOF'
-1 1 0
-1 190 1
-1 246 1
-EOF
+make rerun CASE=1 OUT=/tmp/bet-jitter-seed-1
 ```
 
-This is the exact call used by the native verifier. It writes `evaluated.par`
-and `plot-evaluated.par.rep`; exit status 3 is accepted only when the verifier
-also confirms the outputs and objective parity. It preserves the input PAR.
-Zero-iteration evaluation does not recreate Hessian parts, projections or the
-original optimisation history. The all-seed verifier removes its temporary
-outputs, so use the staged directory above when outputs should be retained.
-
-Return to the repository root for the following commands.
+Choose one of the retained seeds above and a new directory outside the repo.
+The runner preserves source files and uses the original controls `1 1 0`,
+`1 190 1` and `1 246 1`. It retains `evaluated.par`, the REP, native log and
+checksums, and checks the original objective, PAR metadata and selectivity.
+Status 3 is accepted only with valid outputs and objective parity. B0 and full
+REP identity remain unverified; Hessian parts, projections and optimisation
+history are outside this quick evaluation.
 
 ## Reproduce the 25 retained starts and fits
 
@@ -122,13 +109,13 @@ Then prepare and verify the Phase-1 baseline and all 25 jitter starting points
 without running the long fits:
 
 ```sh
-./run-reproduce-jitter --output /absolute/fresh/bet-jitter-prepare
+make prepare OUT=/absolute/fresh/bet-jitter-prepare
 ```
 
 To execute all 25 native fits as well:
 
 ```sh
-./run-reproduce-jitter --run --output /absolute/fresh/bet-jitter-full
+make refit OUT=/absolute/fresh/bet-jitter-full
 ```
 
 The full 25-fit mode is intentionally long and opt-in. Repository validation

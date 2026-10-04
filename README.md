@@ -21,20 +21,23 @@ Hashes are recorded in `data/SHA256SUMS`.
 From the repository root:
 
 ```sh
-./run-report
-./verify-native-pars
+make help
+make verify
+make rerun CASE=1 OUT=/tmp/bet-jitter-1
 ```
 
-The first command rebuilds the report from saved results. The second checks
-all retained PARs with native zero-iteration evaluations on 64-bit Linux;
-it uses temporary directories and verifies the archived objectives.
+`make rerun` retains native outputs in a new directory and checks the saved
+objective, PAR metadata and input hashes. R and Linux x86-64 are required.
+B0 and full REP identity are not verified. `make native-check` checks all
+25 PARs in temporary directories.
 
-For independent refits, prepare the original starts, then add `--run` to run
-all 25 fits:
+For independent refits, prepare the original starts with pinned mfclkit:
 
 ```sh
-./run-reproduce-jitter --output /absolute/fresh/bet-jitter-prepare
+make prepare OUT=/absolute/fresh/bet-jitter-prepare
 ```
+
+Use `make refit OUT=/absolute/fresh/bet-jitter-refit` to run all 25 fits.
 
 See [reproduction instructions](docs/reproduction.md) for the pinned runtime,
 seed controls, output regeneration and stock-status definitions.
