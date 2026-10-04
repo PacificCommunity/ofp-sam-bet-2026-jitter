@@ -1,0 +1,686 @@
+{
+  "repository": "PacificCommunity/ofp-sam-bet-2026-jitter",
+  "source_branch": "main",
+  "source_commit": "bb3f4016b2d145f42c7a76072ed2b10b49aff71f",
+  "hash_algorithm": "sha256",
+  "files": [
+    {
+      "path": ".gitattributes",
+      "mode": "100644",
+      "git_blob": "4de55e006a659c7499c41fbc5509acc8b1301bfa",
+      "sha256": "22e1fdf6a54fb6607a0e59863d89979500fc4ab4ac3a50d3d3bd1e50f944a82b"
+    },
+    {
+      "path": ".github/workflows/render-report.yml",
+      "mode": "100644",
+      "git_blob": "5f4099631afe0b97bb27c5136b843499a5d3631f",
+      "sha256": "9e9f5b38606d392bf0d442b8e7766fa7d1d2755869015039e947581b7a8696e2"
+    },
+    {
+      "path": ".gitignore",
+      "mode": "100644",
+      "git_blob": "d248275110fec0057d1f1f74c12796602c37e8a5",
+      "sha256": "c1cb0aca8da92e62cff22d8ddcb5e044c995733d920c9820607896637c221d0e"
+    },
+    {
+      "path": "Makefile",
+      "mode": "100644",
+      "git_blob": "52f2ceec2cbb24cba26f8ccbdd2435fd0fcbc1c3",
+      "sha256": "79ce4af40d4d3e1b7c7e60d0db789d6049679f17dbc098bdaeda196d91d88dd5"
+    },
+    {
+      "path": "README.md",
+      "mode": "100644",
+      "git_blob": "954155f3c8718366da6bd56eeb4fc069633f0cb7",
+      "sha256": "db97bfed2b22e5adf188a6eec1c46a21be352fed088916d13428f38aab3b842c"
+    },
+    {
+      "path": "data/SHA256SUMS",
+      "mode": "100644",
+      "git_blob": "1eabadfc2e381d5407534f8eb1a6a2477852bade",
+      "sha256": "c6709429eff695b0fa1247d3da09e9593637df0434384a8b434f0fbc0540a0a8"
+    },
+    {
+      "path": "data/diagnostic/jitter-derived-timeseries.rds",
+      "mode": "100644",
+      "git_blob": "3408db247a6aeba545bc07a83d9cb1c8c718da6d",
+      "sha256": "86b5b61403d3c9c23736a60686ca4b96122c179aeb33a4a7d9d1558c64850c96"
+    },
+    {
+      "path": "data/diagnostic/jitter-diagnostics.rds",
+      "mode": "100644",
+      "git_blob": "f4d702739e719a78725e6c4ff3ae0628c7258a32",
+      "sha256": "2b6becf20f6abf6b1935bb5ae5a908a866e2a5c899ab5ea0dd182531fc65f2aa"
+    },
+    {
+      "path": "data/diagnostic/jitter-regional-timeseries.rds",
+      "mode": "100644",
+      "git_blob": "569583cb7fd1c32062295bb355dc7f4342dee946",
+      "sha256": "d3fcc4b2d8545a438b8bb433d83c9575ace31e7c0b2e8eb55860f127be8ada93"
+    },
+    {
+      "path": "data/diagnostic/jitter-stock-status-endpoints.rds",
+      "mode": "100644",
+      "git_blob": "b95966c6a4c885c03aa7b9682610a6b8288ae498",
+      "sha256": "febd5768377bfbf457411a563708f511bdd8f939a6b13bc62d3d22c5f86a322e"
+    },
+    {
+      "path": "data/diagnostic/jitter-stock-status-timeseries.rds",
+      "mode": "100644",
+      "git_blob": "ba19a44e249583eafbd55d17ec191913858df2a2",
+      "sha256": "fe35c730d5ea9e14ea2b6c29deb0570525bf6a2033dbb50350b0052648309516"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_1/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "e6ed73c89f5753ac7ffcec0bddfff260c23da803",
+      "sha256": "111683a800b9925464971608cc0bb86a25c18c9c7289f82cc1bcf2a87a1d1943"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_1/jittered_out_1.par",
+      "mode": "100644",
+      "git_blob": "5129f47286db0ef8bf2db09fff9c3a2ab982bf2a",
+      "sha256": "29f6c1e3086891ca1cb7128490553e336d609320666dd677d5a10291d3f75499"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_10/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "59cc285fa149004bd93eaf0eef98a7a03a0656fc",
+      "sha256": "bf52c6e734b4bec46836bde1055d7b133c79dafbf6720e5bc233686fd3c5288d"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_10/jittered_out_10.par",
+      "mode": "100644",
+      "git_blob": "05fd97fda7961b5e3cae19956f4b9543fea3e3f2",
+      "sha256": "71cf670caee2bbf18580ad820ed9edd090ba5c69364ce11362f2d5653e7aa115"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_11/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "63c7029ef36e855d247d7dcfa63fb9b59eb34ffb",
+      "sha256": "e1339ffa5eeb51e8602f62091a2739fb05c0114f744c7836c57093f64eff8ccf"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_11/jittered_out_11.par",
+      "mode": "100644",
+      "git_blob": "ce29fc75e16edf1f3f5684c2b46337ec911901cf",
+      "sha256": "da58636557ab75ff504510c26b2ba15e4a7ba3c6486cfc518045ca439aafb670"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_12/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "9552602c6d34fee61dc6b87f4c2c83b6e1c7474f",
+      "sha256": "c09848cbcc21301ac53c07fbc09173a28b0d3fe79f617932c80b1f0c670871fc"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_12/jittered_out_12.par",
+      "mode": "100644",
+      "git_blob": "00bed90e21557395cecbcd48bb12a9edd6762063",
+      "sha256": "8a3733b6037dc698eca2ce7a6e362c20b5176d9b5bf4e6b8e6eac6585bd5f588"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_13/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "8bea0bb4ed3887cc93c35148a3643f91ce24b859",
+      "sha256": "6438820cc98e58d3922f68bea35206e3bcffb67cec4222125bc28b9bb9568b41"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_13/jittered_out_13.par",
+      "mode": "100644",
+      "git_blob": "3bed75da552844affcdf1c8de16e6cb41296c01d",
+      "sha256": "97d8a4425a03527b053c8c75d8234831af19a19bd253f5d2a8a86ec08761cc83"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_14/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "78d67b467928208d79dfe7f5f9199646edae13ec",
+      "sha256": "be2602a2d78f022959cde7c1009ff8b001714d47c4acd659de40e6abc31b1781"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_14/jittered_out_14.par",
+      "mode": "100644",
+      "git_blob": "c10ccfc85828eb15553d33fdf9e7d6a3eb5e1abe",
+      "sha256": "e25628ed5f13f7b29b5e2d91df04419e7d440f859a30b864054c27b14240a220"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_15/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "502fa0b7263f2f239f323179726bfb488cc87106",
+      "sha256": "39b41cf54551671b6ba58d3280d1fe667ae75473e901de991f939ec05f683b93"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_15/jittered_out_15.par",
+      "mode": "100644",
+      "git_blob": "9324444625c8291c3fa5f55ade6c467044f4362c",
+      "sha256": "3afe9d48f155e80a8dd132a8aa40b54db37efec91d96219f0ddd909daa1b849b"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_16/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "1e88f4682f2f06204f0d655e98586c54b7fe2e55",
+      "sha256": "252f9bee4694a97efe7d8ad72924dec9598f168842da622af9d71e9e26146c5a"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_16/jittered_out_16.par",
+      "mode": "100644",
+      "git_blob": "ab1375490083309cf998e577e79f47bdc7286741",
+      "sha256": "45029c5e08e6d55a938d0f6550215c1ea9aea1a015fccb5306ade88ee1faa760"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_17/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "4d4bf1ca600609569ea404cd07458e4874811711",
+      "sha256": "4b20530587a776996e52b8ff62c70ff19b2dabd40d9bed84d723597fa75d5ee3"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_17/jittered_out_17.par",
+      "mode": "100644",
+      "git_blob": "86cdacdb44ae29316e76a8c2b5adae005d891933",
+      "sha256": "977d088d25cb6d2d4b7ce13e9b64ad8d9c48ef7144995bd181cd9bcd343dfa1d"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_18/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "0bc52adf511c59f38b79d7f8666e8a4c1fe139ac",
+      "sha256": "aa1653e33bf8dfd142396f6a33d8e5c98694471416e9c210028db3273321bdb4"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_18/jittered_out_18.par",
+      "mode": "100644",
+      "git_blob": "fde8030c880c57b6d4a4c3a6d2b527b3dc24f01d",
+      "sha256": "0088a12a934be9f218e4a5dec5da7289cbe276e629c157604f50e5caae1d80f9"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_19/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "20e63d2359265f3bdaf317fcd284df4c09e761f9",
+      "sha256": "973e20312c8a0898ae30a441cb40963d8cd142a3e44386539125eb8e8ea6a158"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_19/jittered_out_19.par",
+      "mode": "100644",
+      "git_blob": "02d9f9cc16b6626a6a384b0fd17f6a13e83fabe5",
+      "sha256": "88935ad09daaef6cbf149babd921c9bb1e4af22cff241fdc2a9bdc7f8ee9349d"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_2/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "503b1a9e1a90702783bf2d6f56bcf9e30bc57623",
+      "sha256": "e2496f927d6f8cfca445a974590ee703bf09165413f949cc28d1569e386dde14"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_2/jittered_out_2.par",
+      "mode": "100644",
+      "git_blob": "344c0ebef09bce2d4588d7b6ff4f8bc0a5b4e640",
+      "sha256": "d32458dd048e7280117d2f66420c6e9b5c18a51ee4b3bbcf69dd29689f5d2d16"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_20/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "f54187cf3e7eb6c556bdf9c2039b3107ee54c11e",
+      "sha256": "a53e1063bf393605790fb4f4d079437d757d525443057e986f31b45b650ea47b"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_20/jittered_out_20.par",
+      "mode": "100644",
+      "git_blob": "07d39a961777e8036f9e22319a49802ee8e1a61d",
+      "sha256": "6a6a481b7531f3ce34e15b367a062b27fdb8dad74c308ab7b9310aa482f8a5c9"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_21/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "a99b09615be6c508931032e21ac6bc80b998293d",
+      "sha256": "03b574cab770728d485275879734f8863b9255220484f9b92b16dee7484065e6"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_21/jittered_out_21.par",
+      "mode": "100644",
+      "git_blob": "abc26bc0cef5d962245a0f8a839a6923b182b464",
+      "sha256": "ca8f0cedbabb0221c100f5afa808c069fb3961be9adfc6bba8aa9418c050a4d3"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_22/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "1d9534dbdef1e89c8c016045d858b136f0abeecb",
+      "sha256": "c196a8bf599878e62e9d6f59a85158e108df1be0a0bdbbffb9a519bc49594442"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_22/jittered_out_22.par",
+      "mode": "100644",
+      "git_blob": "ed4ddf4ef4627706cfbc0abcea3c0a679059b276",
+      "sha256": "21babbb67177f3e231fbf7bb16aa49f6e370d915cb147808e66cc0da174e468a"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_23/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "fb2c9db1ec197fc75f99ed8c887a6bdf2a8df7a2",
+      "sha256": "9a5d6d4f965cc93fba5f798b87e4b00d8440260e88fe94eaf392010e4fb36aee"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_24/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "70a1d9693b26c29aa983cad1bd864155783b2053",
+      "sha256": "164f81c8f16ef86485bda5972b0e4e7f3fa1337caef8c287558f8207d861f619"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_25/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "18cbad027664d7f580321a89fa9a309949cdf274",
+      "sha256": "e36f410046f28dcac853a7b02ab4cbd7bbc9246818dda89f36297c1253eba92e"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_25/jittered_out_25.par",
+      "mode": "100644",
+      "git_blob": "698c3a362ddbd917c0fd20eaf38c0336acdbd5bf",
+      "sha256": "118dc8d247db4e4db61b288041c1630f3987354aa89c61076810a984ec6398ce"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_26/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "9a818f55b205970fe1273ebf4be4ef37cd430789",
+      "sha256": "811c228b3aa98fc109f1730f99090dca3378c9584c4c672a500b97442e27f914"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_26/jittered_out_26.par",
+      "mode": "100644",
+      "git_blob": "345fc47e945eacf7ac3452e62d6368a23aa20b79",
+      "sha256": "45d48816ccb4f3229c4748900bb5aba8f534e6819465d1272db8b0407521fdd0"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_27/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "f261ce0f54f4e420e7ad9c15567d4fdd3f162575",
+      "sha256": "d55a75d30a31602e2c3aef4528dcb1e32cc3a2891709621ad2e2e62294b9e28e"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_28/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "4a66abfd1fac25bb172196f917d063f14906515a",
+      "sha256": "a9252f33cefab02c6e7a8a94305081bdd808ba95f9b83aad0c095869d8e519d7"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_28/jittered_out_28.par",
+      "mode": "100644",
+      "git_blob": "b7c60289c3f18bcbbdef72f45801c3e8c9706469",
+      "sha256": "473b5bfe9e1728042278ede34d8bd0f022cc7a9de990745da9f1ee8ffac4934e"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_29/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "5090be242170b4618862abc1ba98b6da6ef7f2b5",
+      "sha256": "e715f6616f4fd50d4ab1f6b6d4fcaf00e4472b8fb74bce26f749dd560ea985b8"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_29/jittered_out_29.par",
+      "mode": "100644",
+      "git_blob": "08aaf2115c92780162562a9307cf5c478d3ad8e0",
+      "sha256": "ae235b01167414a69ce2d5397138992f05a07afddd89376b4f0d1d582c0338d4"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_3/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "6440fa3a6d52e3dcbc204b9137819407c1fe4068",
+      "sha256": "b7685b325d0dbe083c6266413a802b2d7a1fa7049b4ebf5b8fc9c5b8b69d89a4"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_3/jittered_out_3.par",
+      "mode": "100644",
+      "git_blob": "23bd101ab8f6994b9ebac07296c58cd12c2bbaa1",
+      "sha256": "b61525ffd6dea342585a4ab7524e91b949b73eae07178380abfd5df3e5048fee"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_30/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "b5b3105d91edab2e3dfa4351e0b932ae4f602859",
+      "sha256": "e71d52d920fa47222a155207789dd04839f11ef143fcd2867e521005de97b918"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_30/jittered_out_30.par",
+      "mode": "100644",
+      "git_blob": "12478a61a489566efdc17958d03cb81fc8e4fe28",
+      "sha256": "810bad3b24cd1e754b2c809bbee18b17b1cb9017e55126c4ede729c75fa69011"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_4/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "dc1b71cb1b33e51f691ba90c1ae89855fbedebba",
+      "sha256": "17789d7e4a253845a902fc7eb6a1abcb13fcf07ea893f1d31040eae36d0c4f18"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_5/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "bff49709d2ece6fd2cabd762d6bb78127f80b082",
+      "sha256": "90c74cb9f6d1856abf559f96fbeb33f01b5c00a41fc91644cb181edbb97509fc"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_5/jittered_out_5.par",
+      "mode": "100644",
+      "git_blob": "0a40822fb0584e5f486cea664886eecabf4466c9",
+      "sha256": "55dbea9ef1913eeaa80e7aa7b7685b4b0dda461f40c5b852a404613933bf83a9"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_6/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "43ebfab169f818811f08ac2e90c9480ecdad51e8",
+      "sha256": "571c6d5e8b6603b229bb172665c1237b75ea089b577529504c5165fafc6a903f"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_7/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "f3db76491082e0ae7744ca7abfb8e94bc0790228",
+      "sha256": "eeaf26b32021ba1c296f55ff10c08b7f06d6234cd1608ff6b26182ccd6f978c8"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_7/jittered_out_7.par",
+      "mode": "100644",
+      "git_blob": "682617919efb8ad49a306689f21db3429f2ceb14",
+      "sha256": "8a2899f08c0a17b3a1ecb76d93adf84a1660dcb9abfe5acd5e2bc127403293a2"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_8/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "87642f7b25b11b27b6e45ebe4095b7ed3d4bdd55",
+      "sha256": "901c5d2b6538af5609e8db8afc43b80a3b38731cc93c3be322108575433ab546"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_8/jittered_out_8.par",
+      "mode": "100644",
+      "git_blob": "f3a1f5058f6ca6d89a66aaa3d959420cf651a678",
+      "sha256": "bfec3a55c4aaf522b475c5020a3fb45f912410ef6df2989cee13ddaa5c650370"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_9/jitter_result.rds",
+      "mode": "100644",
+      "git_blob": "c9b212fa61ed8a5652b7109a06baacc836d1f8f4",
+      "sha256": "f3458c7c0253272f15f5c1c657185cc140939f27585a76bd562f2cc5a5ad3c0f"
+    },
+    {
+      "path": "data/diagnostic/jitter/jitter_seed_9/jittered_out_9.par",
+      "mode": "100644",
+      "git_blob": "957531742fb54505613ef121f9c08b192a0997d8",
+      "sha256": "b4a9fec62d4d5f8cf947601a0fe6c4efb8d9ab7a6581709b1a956febd093c0da"
+    },
+    {
+      "path": "data/diagnostic/mfcl/bet.age_length",
+      "mode": "100644",
+      "git_blob": "0ee68f193e11e3c0f516460d9536cb47d1bdc697",
+      "sha256": "426859b825bd815aa69c8d97c9dd93097027ed1eb6b9e444d88b69562097a00c"
+    },
+    {
+      "path": "data/diagnostic/mfcl/bet.frq",
+      "mode": "100644",
+      "git_blob": "5cad7d617ee7681966f1cc4e35801d0877ca4f60",
+      "sha256": "d0d84f0a498e6a62681f2a58ffc1ba53dab9e3d6af856b4ad1fd907196250004"
+    },
+    {
+      "path": "data/diagnostic/mfcl/bet.ini",
+      "mode": "100644",
+      "git_blob": "1e63cdba45d5ce499edb5dcbc113116321769d42",
+      "sha256": "fbd064c3d0ccb4d2e1b9beb06fe3eacf0180677821e6a1773d20b308474d984e"
+    },
+    {
+      "path": "data/diagnostic/mfcl/bet.reg_scaling",
+      "mode": "100644",
+      "git_blob": "fa22c978510f64f133245a9dcb27d3db038dfc7c",
+      "sha256": "5f047ddb4053d1f6df9ace18e85e440b11553de246d024ce8138b427f5f9f7e3"
+    },
+    {
+      "path": "data/diagnostic/mfcl/bet.tag",
+      "mode": "100644",
+      "git_blob": "44c3b585ad1fe461f34e48a44a3321cf0594a38c",
+      "sha256": "b140e66eb52f2b7e022ef2c562134f8bc9baf3dede18ce95283a001acd2b013f"
+    },
+    {
+      "path": "data/diagnostic/mfcl/doitall.sh",
+      "mode": "100755",
+      "git_blob": "c1c006903e6abe871718080eefa64878b2666494",
+      "sha256": "ad8ca660b6d84f9bbd1d8024f616a5bd66047a44ecc2c6e8b5c61c6be089fc5c"
+    },
+    {
+      "path": "data/diagnostic/mfcl/mfcl.cfg",
+      "mode": "100644",
+      "git_blob": "4d25120b2f1a1dd322747ca47dcede6fe1e65169",
+      "sha256": "2ec8a291fae62c6f37541aec1de37444626d42b3290b371bb42b63d510034eae"
+    },
+    {
+      "path": "data/diagnostic/mfcl/mfclo64",
+      "mode": "100755",
+      "git_blob": "532866edeaa5e9e1db01438973c670f16e466e42",
+      "sha256": "f5bc1e232a86e51f920bce7271d8e0930d0b160e4d18dc46de44078f0fa24cd0"
+    },
+    {
+      "path": "data/diagnostic/mfcl/model-inputs/S0.90-F2.conf",
+      "mode": "100644",
+      "git_blob": "5c3353e409528c355f9e9f9eee2b8829f2a5609e",
+      "sha256": "1a0d0fffec49c033100f3e9c76bfd05a7e3ed4ddfd701221f7199659dfcd9c11"
+    },
+    {
+      "path": "data/diagnostic/mfcl/selectivity-models/F2.csv",
+      "mode": "100644",
+      "git_blob": "4825bbc5925e79f7a62b0b8ac21e04e4613e5cca",
+      "sha256": "790e21a01054349a20f4fbbb7db926f6452d059344815a3a9d6a5de51db3310a"
+    },
+    {
+      "path": "data/diagnostic/model_payload.rds",
+      "mode": "100644",
+      "git_blob": "5170c340b605d9a18a490a6fcaf8a3eb5daba858",
+      "sha256": "697415ba8d524531e5a6eb676d816475dbbcd5485c62d4707a154254ad2f66dd"
+    },
+    {
+      "path": "data/diagnostic/native-par-validation.csv",
+      "mode": "100644",
+      "git_blob": "ad04cec88d3b06980af558f11da59bafb005fc3e",
+      "sha256": "afd5094772714e6e0e7f7f33f6295acadd57610750371788983f19d85faea52c"
+    },
+    {
+      "path": "data/diagnostic/reproduction/fitted-reference/final.par",
+      "mode": "100644",
+      "git_blob": "acb77e06cf0f5077e7e642b8d2c139482205a535",
+      "sha256": "21dcaea9db8c89ddc8c29fa3c3a5e514b50bef6e26587c168c00c05f35fbebc3"
+    },
+    {
+      "path": "data/diagnostic/reproduction/fitted-reference/indepvar.rpt",
+      "mode": "100644",
+      "git_blob": "ad968030e5cdcc9b6e2343111d0660809d4dc9c6",
+      "sha256": "5792c57d7bcce5e679faa5adac63e6d20886fc478f03a29277814616e313b490"
+    },
+    {
+      "path": "data/diagnostic/reproduction/jitter-plans.rds",
+      "mode": "100644",
+      "git_blob": "96af28eff2b9138dc13e84a4d40a2a1a1aaf6fb5",
+      "sha256": "8c05a9e616de9c7f0192682d5bf09d831498c4aa9b16ebc5af59b6bb43957239"
+    },
+    {
+      "path": "data/diagnostic/reproduction/phase1-reference/fitted_active_xinit.rpt",
+      "mode": "100644",
+      "git_blob": "e157ccddcfab6a87303cc177643c196b96a130e8",
+      "sha256": "cc723c20b1a7b3e71cb32e45cc9f9d8edecdbea9906be8ddf315cdadf36af771"
+    },
+    {
+      "path": "data/diagnostic/reproduction/phase1-reference/indepvar.rpt",
+      "mode": "100644",
+      "git_blob": "44fd83dbc4f92a25ed5d2663f55012a917e87641",
+      "sha256": "460bd04bf8200b68d5023debc1534258fa2b2797d95c1c8dc7f1c4b8fbb2f2f1"
+    },
+    {
+      "path": "data/diagnostic/reproduction/phase1-reference/jitter_deferred_mapping.rds",
+      "mode": "100644",
+      "git_blob": "1aedfbeb97d7ac7f5e10571ef80015c717d646c8",
+      "sha256": "01054f1d881ed9dabfdd2634dd48418286dcca217b53be4960f4f6331df43b1d"
+    },
+    {
+      "path": "data/diagnostic/reproduction/phase1-reference/jitter_deferred_xinit.rpt",
+      "mode": "100644",
+      "git_blob": "dd6e26f8bea0f9b8863e2683a5a38d70fd2f6886",
+      "sha256": "c5c128e3576e00ef6192227d58a7719f9b3020d9176ca3d99e56bf4107c0a60a"
+    },
+    {
+      "path": "data/diagnostic/reproduction/phase1-reference/jitter_fitted_active_mapping.rds",
+      "mode": "100644",
+      "git_blob": "45a5965be41796dec1a4de4c01ecfe2a024e6d8e",
+      "sha256": "829e341b2af1a7715069f30f1f93675543a2805f4c480007ea2c4ac3fcbb7d5a"
+    },
+    {
+      "path": "data/diagnostic/reproduction/phase1-reference/jitter_mask_coverage.csv",
+      "mode": "100644",
+      "git_blob": "b7e3fa7c108208bd9706979cccfd5dd5ba7e6e95",
+      "sha256": "c9b0f1e85c0946004fb723df2cc4298b1a3445fb6a7f221dfe7a0f6eb964eab3"
+    },
+    {
+      "path": "data/diagnostic/reproduction/phase1-reference/jitter_phase1_mapping.rds",
+      "mode": "100644",
+      "git_blob": "f4cf6fbef87aa8ceae71fdc5718c02a08ec753b5",
+      "sha256": "926d60f0040529d0e4ef8c65f918da21c75bd80b98064898489ed1edd7a43bc2"
+    },
+    {
+      "path": "data/diagnostic/reproduction/phase1-reference/mfk_phase1_baseline.par",
+      "mode": "100644",
+      "git_blob": "f4350fca463fb97cf16d17ad72280aed8f470477",
+      "sha256": "da7f8afd374bbb02906ca40dfc6f77e25eb18615434fe5ac3e2a54976648d6c0"
+    },
+    {
+      "path": "data/diagnostic/reproduction/phase1-reference/phase1_reference.rds",
+      "mode": "100644",
+      "git_blob": "9090a2cb79e3f03365b045eb60ea02d6928c6bc1",
+      "sha256": "9a7481c58359abf7e769af1775d5f0b7a0f8d75b81988c1bf4ce2c2cfe4e694f"
+    },
+    {
+      "path": "data/diagnostic/reproduction/phase1-reference/phase1_xinit.rpt",
+      "mode": "100644",
+      "git_blob": "acf0ddc3433bc5dbe5429c8ef526e9e95a1d0929",
+      "sha256": "4e5da360aee944923284df58b336846a669085d0ea1180aa29b7a8faba6e8c48"
+    },
+    {
+      "path": "data/diagnostic/reproduction/phase1-reference/xinit.rpt",
+      "mode": "100644",
+      "git_blob": "acf0ddc3433bc5dbe5429c8ef526e9e95a1d0929",
+      "sha256": "4e5da360aee944923284df58b336846a669085d0ea1180aa29b7a8faba6e8c48"
+    },
+    {
+      "path": "report/render.R",
+      "mode": "100644",
+      "git_blob": "405fb1a7198fa2697fefcc696dd2aacd3a66c084",
+      "sha256": "d9370d40e8b15a8c813bf0436ca8bdd985d1d94a72f7c9abca9f2b9f39f159df"
+    },
+    {
+      "path": "report/validate.R",
+      "mode": "100644",
+      "git_blob": "da470a20b1d421595fcf4f07c2576dfe458e6ab9",
+      "sha256": "d2266a1899d7106c4ed286acbf7b669d9e90465e122c4940f7a4c2fe645fb056"
+    },
+    {
+      "path": "results/figures/jitter-derived-diagnostic-model.png",
+      "mode": "100644",
+      "git_blob": "ad89d99ea359c933cb291484f1b2e92caa90041b",
+      "sha256": "5866854fafc2e2f87cd4e7b63f69228352137f23484de4da7bf85e05f99f26e8"
+    },
+    {
+      "path": "results/figures/jitter-diagnostics-diagnostic-model.png",
+      "mode": "100644",
+      "git_blob": "a271c328332679908aa63c58bf9f8813aa20ad93",
+      "sha256": "31ca6ef1eec12f1bc70e3fefc5e885e21e5637c6c710c52f4b007fe24628b811"
+    },
+    {
+      "path": "results/figures/jitter-regional-depletion-diagnostic-model.png",
+      "mode": "100644",
+      "git_blob": "a9eb4100c18a05af1f8f4c3d1f9332637109854b",
+      "sha256": "ca02911ddd48dae9a0a7d2bcb1c9bbd8fa7d2644f5e0d521b561e94bd2114c39"
+    },
+    {
+      "path": "results/figures/jitter-regional-recruitment_deviation-diagnostic-model.png",
+      "mode": "100644",
+      "git_blob": "fec0a797adc1b01d70ae547cefad2c23a232eb81",
+      "sha256": "9b812f4a11339c21c063524846bcde67a3a3fe12d3db977a1e853ae03b753870"
+    },
+    {
+      "path": "results/figures/jitter-stock-status-diagnostic-model.png",
+      "mode": "100644",
+      "git_blob": "4e876dbd99bbfdc2ae47ed53864773588152ecdf",
+      "sha256": "bea88a6a57c9fce69edb7f558b2bfe2d8c4aed37c55c1a5208788b937bcc9a29"
+    },
+    {
+      "path": "results/jitter-report.html",
+      "mode": "100644",
+      "git_blob": "7c05b752d0da9831b9897cc4944ef598f98ebb2b",
+      "sha256": "de38c3fc93b1ad3a58fb6c91aca4251cd02bc7297acf4c1179ff5f43903a281a"
+    },
+    {
+      "path": "results/tables/jitter-diagnostic-model.csv",
+      "mode": "100644",
+      "git_blob": "2d4f91ac289b22685a80b80ec07b5e13cf68e7ac",
+      "sha256": "f27a09bfb3baaaa75817b0f2cb4b4b6382399e57e4285263734bb9eda5f2bc75"
+    },
+    {
+      "path": "results/tables/jitter-diagnostic-model.tex",
+      "mode": "100644",
+      "git_blob": "737752d7b7aff37a2449cb6ca1f1dd1c9aa5f33e",
+      "sha256": "3be449f31685d94667a0d52c498a70a3c262de12635b3287bb13051602fe8256"
+    },
+    {
+      "path": "results/tables/jitter-regional-pointwise-summary.csv",
+      "mode": "100644",
+      "git_blob": "b5c0c0a91252dc871f24c7480f53cb96f6b379a3",
+      "sha256": "ca7ca58a3b7ce2b3f586613c707343c29892a852ac7af9d0ec18d825559a1e5a"
+    },
+    {
+      "path": "results/tables/jitter-regional-timeseries.csv",
+      "mode": "100644",
+      "git_blob": "194bb9cf1c56faa25b6fda3a83998979b4b6dfa6",
+      "sha256": "763da84d21196d3c4747ee4596c7c41d156b165fab13ad67c4f13d7a2d17b5d3"
+    },
+    {
+      "path": "results/tables/jitter-stock-status-quantities.csv",
+      "mode": "100644",
+      "git_blob": "ae06c818e2b4724be46c8b72782a2adaba05650a",
+      "sha256": "8b2f064926aaf4e3624e60590f1720cab8c80a1b19953b33cbe4f3738350ec4c"
+    },
+    {
+      "path": "results/tables/jitter-stock-status-summary.csv",
+      "mode": "100644",
+      "git_blob": "fe7dd535fe6c6fcdcdeb13be240180fa97a5f3d2",
+      "sha256": "b0604c3f2cf79c8e9936843660c97051928c5e7b24afee572cf381fdc8eb1986"
+    },
+    {
+      "path": "results/tables/jitter-stock-status-timeseries.csv",
+      "mode": "100644",
+      "git_blob": "f26b6502b35901f28860bb73b1122016cf952031",
+      "sha256": "3a2d14108bf52e20c65a29b66d4c25d5976d397bfb4ea8936610c94dfd551bc9"
+    },
+    {
+      "path": "run-report",
+      "mode": "100755",
+      "git_blob": "2a0d4b955fdd69e73811c76c28060f727ff156b7",
+      "sha256": "9a6cc06cf2958d992b67e0c38517ef58b783f132fd973d30607649ca33264d28"
+    },
+    {
+      "path": "run-reproduce-jitter",
+      "mode": "100755",
+      "git_blob": "c5ecd8f52f8dad5a55665b91c825f4098c6635cb",
+      "sha256": "5bad6395db0d80eece410ac8b39a474a368eb3130c067514ed5269861d3daa28"
+    },
+    {
+      "path": "scripts/reproduce-jitter.R",
+      "mode": "100644",
+      "git_blob": "d15847d9e3408af4303cf9a9be03df788be07d3a",
+      "sha256": "fb17bf405d16822d2ace9f15f758a82dbe5ce5799c3512346ef39f2a647c8281"
+    },
+    {
+      "path": "scripts/validate-embedded-selectivity.R",
+      "mode": "100644",
+      "git_blob": "dff173ac6822cf283dc82f25d5834b295cb9286c",
+      "sha256": "a38a2f66bb5e73c41a140873b2cd096424c1c432ddc14de3a1cd116f67b52dad"
+    },
+    {
+      "path": "scripts/verify-native-pars.R",
+      "mode": "100644",
+      "git_blob": "640f1aa419ce1abeebca39817aff2e2308a1cf58",
+      "sha256": "c9843046b872e542c5f7c3f50fd46daef31343889c41060765e8a75510616b86"
+    },
+    {
+      "path": "verify-native-pars",
+      "mode": "100755",
+      "git_blob": "f95c5b4ce57b38cd1ce392625888ed521aecc1f9",
+      "sha256": "17e4eeb454306c19105ff6c7c151471f73e71288327d4020eba86e8b25c15597"
+    }
+  ]
+}
