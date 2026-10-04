@@ -2,6 +2,11 @@
 # Hessian/projection outputs, B0 parity or full-REP identity are asserted.
 options(stringsAsFactors = FALSE)
 
+has_symlink <- function(path) {
+  link <- Sys.readlink(path)
+  !is.na(link) && nzchar(link)
+}
+
 # Scalar and steepness checks match scripts/verify-native-pars.R.
 sha256_file <- function(path) {
   output <- system2("sha256sum", shQuote(path), stdout = TRUE, stderr = TRUE)
@@ -85,7 +90,7 @@ main <- function() {
   parent <- normalizePath(dirname(raw_output), mustWork = TRUE)
   output <- file.path(parent, basename(raw_output))
   if (output == repo || startsWith(paste0(output, "/"), paste0(repo, "/")) ||
-      file.exists(output) || isTRUE(nzchar(Sys.readlink(output)))) {
+      file.exists(output) || has_symlink(output)) {
     stop("OUT must be new and outside the repository.", call. = FALSE)
   }
 
@@ -98,7 +103,7 @@ main <- function() {
   reference <- file.path(mfcl_dir, "selectivity-models", "F2.csv")
   sources <- c(file.path(mfcl_dir, common), par, result_file, reference)
   if (!all(file.exists(sources)) || any(vapply(sources, function(p) {
-    isTRUE(file.info(p)$isdir) || isTRUE(nzchar(Sys.readlink(p)))
+    isTRUE(file.info(p)$isdir) || has_symlink(p)
   }, logical(1L)))) stop("The original source bundle is incomplete.", call. = FALSE)
   manifest <- file.path(repo, "data", "SHA256SUMS")
   if (!identical(sha256_file(manifest),

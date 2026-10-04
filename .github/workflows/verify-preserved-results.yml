@@ -26,8 +26,9 @@ jobs:
         shell: bash
         run: |
           sha256sum -c data/SHA256SUMS
-          ./verify-native-pars - > "$RUNNER_TEMP/jitter-native-validation.csv"
           Rscript --vanilla -e 'parse(file="reproduce/rerun-saved.R")'
+          Rscript --vanilla ci/check-rerun-paths.R
           make rerun CASE=1 OUT="$RUNNER_TEMP/bet-make-jitter1"
+          ./verify-native-pars - > "$RUNNER_TEMP/jitter-native-validation.csv"
           python3 ci/verify-preserved-files.py
           git diff --exit-code
