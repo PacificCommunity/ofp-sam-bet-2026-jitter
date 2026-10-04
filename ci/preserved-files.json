@@ -31,8 +31,8 @@
     {
       "path": "README.md",
       "mode": "100644",
-      "git_blob": "dadf41dacc00cfaba1bb559c9c7f50c2f7dd9ad3",
-      "sha256": "58041c5ce0c03a51a026592513d10b92d14ffc57f3ec4226e132a2e3403ebe1b"
+      "git_blob": "27d30bf4e30baf1c7fbfe35da6b7786918a3d776",
+      "sha256": "801a9dd49a7a4e3eb6ed47061fba33346ad1007725272b5b994b194a533f50e7"
     },
     {
       "path": "data/SHA256SUMS",
@@ -690,6 +690,16 @@
       "original_sha256": "db97bfed2b22e5adf188a6eec1c46a21be352fed088916d13428f38aab3b842c",
       "original_git_blob": "954155f3c8718366da6bd56eeb4fc069633f0cb7",
       "expected_sha256": "58041c5ce0c03a51a026592513d10b92d14ffc57f3ec4226e132a2e3403ebe1b"
+    },
+    {
+      "path": "README.md",
+      "reason": "Add current CI status badges requested by Kyuhan. The complete previous README body is byte-identical after removing the exact badge prefix. Scientific files, reports, links and anchors are unchanged.",
+      "previous_sha256": "58041c5ce0c03a51a026592513d10b92d14ffc57f3ec4226e132a2e3403ebe1b",
+      "previous_git_blob": "dadf41dacc00cfaba1bb559c9c7f50c2f7dd9ad3",
+      "expected_sha256": "801a9dd49a7a4e3eb6ed47061fba33346ad1007725272b5b994b194a533f50e7",
+      "expected_git_blob": "27d30bf4e30baf1c7fbfe35da6b7786918a3d776",
+      "exact_added_prefix": "[![Preservation checks](https://github.com/PacificCommunity/ofp-sam-bet-2026-jitter/actions/workflows/verify-preserved-results.yml/badge.svg?branch=main)](https://github.com/PacificCommunity/ofp-sam-bet-2026-jitter/actions/workflows/verify-preserved-results.yml?query=branch%3Amain)\n\n",
+      "authorization": "Task-scoped human instruction: CI\ub41c\uac83\ub4e4\uc740 \ub9ac\ub4dc\ubbf8\uc5d0 \uadf8 \uccb4\ud06c\ubc43\uc9c0\ub098 \uc774\ub7f0\uac70\ub3c4 \uc880 \ub123\uc5b4\uc8fc\uba74 \uc88b\uaca0\ub2e4"
     }
   ]
 }
