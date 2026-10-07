@@ -81,12 +81,24 @@ make rerun CASE=1 OUT=/tmp/bet-jitter-seed-1
 ```
 
 Choose one of the retained seeds above and a new directory outside the repo.
-The runner preserves source files and uses the original controls `1 1 0`,
-`1 190 1` and `1 246 1`. It retains `evaluated.par`, the REP, native log and
-checksums, and checks the original objective, PAR metadata and selectivity.
-Status 3 is accepted only with valid outputs and objective parity. B0 and full
-REP identity remain unverified; Hessian parts, projections and optimisation
-history are outside this quick evaluation.
+The runner copies the exact inputs and final PAR to a fresh directory. Its
+evaluation controls are `1 1 1`, `1 50 0` and `1 246 1`; every logged iteration
+and function-evaluation counter must stay at zero. The original fitting script
+and saved files are unchanged.
+
+It compares the objective, annual SB/SBF0 and depletion for 1952–2024, and the
+three stock-status endpoints with the checksum-pinned report data. It also
+checks REP dimensions, positive finite SBF0, SBMSY and Fmult values, steepness, selectivity
+and input hashes. `central-results.csv`, `management-quantities.csv` and
+`native-check.csv` record these checks alongside the native outputs and log.
+Status 3 is accepted only when every check passes.
+
+Annual biomass is the mean of quarterly regional totals; spawning potential
+is reported in 10^3 MT. Annual depletion divides those SB and SBF0 means.
+Annual comparisons use relative tolerance 1e-10 (scaled by at least one);
+endpoint comparisons use 5e-7, matching `report/validate.R`. Exact per-seed REPs
+were not retained, so whole REP and MSY-yield identity cannot be checked.
+Hessian parts, projections and optimisation history are outside this evaluation.
 
 ## Reproduce the 25 retained starts and fits
 

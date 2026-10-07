@@ -5,14 +5,12 @@ on:
     branches: [main]
     tags: ["v*"]
     paths:
-      - "README.md"
       - "data/**"
       - "report/**"
       - "run-report"
       - "run-reproduce-jitter"
       - "verify-native-pars"
       - "scripts/**"
-      - ".github/workflows/render-report.yml"
   workflow_dispatch:
 
 permissions:

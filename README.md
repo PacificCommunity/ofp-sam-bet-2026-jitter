@@ -26,10 +26,11 @@ make verify
 make rerun CASE=1 OUT=/tmp/bet-jitter-1
 ```
 
-`make rerun` retains native outputs in a new directory and checks the saved
-objective, PAR metadata and input hashes. R and Linux x86-64 are required.
-B0 and full REP identity are not verified. `make native-check` checks all
-25 PARs in temporary directories.
+`make rerun` retains native outputs and checks the saved objective, zero
+iteration/evaluation counters, annual SB and depletion, and the three
+stock-status endpoints. R and Linux x86-64 are required. Whole REP, MSY yield,
+Hessian and projection identity remain unverified. `make native-check` retains
+the earlier objective-only check of all 25 PARs.
 
 For independent refits, prepare the original starts with pinned mfclkit:
 

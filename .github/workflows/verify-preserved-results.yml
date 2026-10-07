@@ -28,7 +28,47 @@ jobs:
           sha256sum -c data/SHA256SUMS
           Rscript --vanilla -e 'parse(file="reproduce/rerun-saved.R")'
           Rscript --vanilla ci/check-rerun-paths.R
-          make rerun CASE=1 OUT="$RUNNER_TEMP/bet-make-jitter1"
-          ./verify-native-pars - > "$RUNNER_TEMP/jitter-native-validation.csv"
           python3 ci/verify-preserved-files.py
           git diff --exit-code
+
+  native:
+    name: Regenerate saved jitter fits (shard ${{ matrix.shard }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [0, 1, 2, 3, 4]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+      - name: Verify source files and select retained seeds
+        run: |
+          make verify
+          Rscript -e 'x <- read.csv("data/diagnostic/native-par-validation.csv")$seed; stopifnot(length(x) == 25L, !anyDuplicated(x)); cat(x[(seq_along(x)-1L) %% 5L == as.integer(commandArgs(TRUE)[1])], sep="\n")' "${{ matrix.shard }}" > "$RUNNER_TEMP/jitter-seeds.txt"
+      - name: Regenerate and compare original annual results and endpoints
+        shell: bash
+        run: |
+          mkdir "$RUNNER_TEMP/bet-native"
+          while IFS= read -r seed; do
+            make rerun CASE="$seed" OUT="$RUNNER_TEMP/bet-native/seed-$seed"
+          done < "$RUNNER_TEMP/jitter-seeds.txt"
+          python3 ci/verify-preserved-files.py
+          git diff --exit-code
+      - name: Retain native verification receipts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: saved-jitter-native-checks-${{ matrix.shard }}
+          path: |
+            ${{ runner.temp }}/bet-native/*/native-check.csv
+            ${{ runner.temp }}/bet-native/*/input-checksums.csv
+            ${{ runner.temp }}/bet-native/*/controls.txt
+            ${{ runner.temp }}/bet-native/*/central-results.csv
+            ${{ runner.temp }}/bet-native/*/management-quantities.csv
+            ${{ runner.temp }}/bet-native/*/native-counters.txt
+            ${{ runner.temp }}/bet-native/*/mfcl.log
+          if-no-files-found: error
+          retention-days: 14

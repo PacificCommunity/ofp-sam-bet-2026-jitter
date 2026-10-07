@@ -1,5 +1,5 @@
-# Retain a saved-PAR evaluation in a new directory. No optimisation history,
-# Hessian/projection outputs, B0 parity or full-REP identity are asserted.
+# Evaluate a retained fit and compare annual biomass/depletion and the three
+# report endpoints. Whole REP, Hessian and projection identity remain unverified.
 options(stringsAsFactors = FALSE)
 
 has_symlink <- function(path) {
@@ -63,6 +63,167 @@ assert_fixed_steepness <- function(path) {
   invisible(TRUE)
 }
 
+require_true <- function(condition, message) {
+  if (!isTRUE(condition)) stop(message, call. = FALSE)
+}
+
+# Read the native text, including the complete row/column shape of each section.
+central_rep <- function(path) {
+  lines <- readLines(path, warn = FALSE)
+  headers <- which(grepl("^[[:space:]]*#", lines))
+  labels <- trimws(sub("^[[:space:]]*#[[:space:]]*", "", lines[headers]))
+  section <- function(label, rows = 1L, columns = 1L) {
+    i <- which(labels == label)
+    require_true(length(i) == 1L, paste("REP needs exactly one", label))
+    first <- headers[i] + 1L
+    last <- if (i < length(headers)) headers[i + 1L] - 1L else length(lines)
+    require_true(first <= last, paste("Empty REP section:", label))
+    text <- trimws(lines[seq.int(first, last)])
+    tokens <- strsplit(text[nzchar(text)], "[[:space:]]+")
+    values <- suppressWarnings(as.numeric(unlist(tokens, use.names = FALSE)))
+    require_true(length(tokens) == rows && all(lengths(tokens) == columns) &&
+                   length(values) == rows * columns && all(is.finite(values)),
+                 paste("Invalid REP shape or values:", label))
+    matrix(values, nrow = rows, ncol = columns, byrow = TRUE)
+  }
+  dimension_labels <- c("Number of time periods", "Year 1", "Number of regions",
+                        "Number of species", "Number of age classes",
+                        "Number of recruitments per year")
+  dimensions <- vapply(dimension_labels, function(x) as.numeric(section(x)), numeric(1L))
+  require_true(identical(unname(dimensions), c(292, 1952, 5, 1, 40, 4)),
+               "Native REP dimensions differ from the retained BET model.")
+  sb <- section("Adult biomass", 292L, 5L)
+  sb0 <- section("Adult biomass in absence of fishing", 292L, 5L)
+  bmsy <- as.numeric(section("Adult biomass at MSY"))
+  fmult <- as.numeric(section("F multiplier at MSY"))
+  require_true(all(c(sb, sb0, bmsy, fmult) > 0), "Non-positive central native REP values.")
+  annual <- function(x) colMeans(matrix(rowSums(x), nrow = 4L))
+  sb <- annual(sb); sb0 <- annual(sb0)
+  list(dimensions = dimensions, bmsy = bmsy, fmult = fmult,
+       annual = data.frame(year = 1952:2024, adult_biomass = sb,
+         adult_biomass_nofish = sb0, spawning_potential = sb / 1000,
+         depletion = sb / sb0))
+}
+
+report_windows <- function(path) {
+  lines <- readLines(path, warn = FALSE)
+  # The second parest_flags block is historical, not the current controls.
+  historical <- which(trimws(lines) == "# Historical_flags")
+  require_true(length(historical) == 1L, "Missing current/historical PAR boundary.")
+  current <- lines[seq_len(historical - 1L)]
+  flags <- numeric_row_after(current, "# The parest_flags", path)
+  age <- numeric_row_after(current, "# age flags", path)
+  require_true(length(flags) >= 60L && length(age) >= 155L, "Incomplete recent-period flags.")
+  sb_years <- if (flags[59L] <= 0) 4 else flags[59L]
+  sb0_years <- if (flags[60L] <= 0) 10 else flags[60L]
+  require_true(identical(c(sb_years, sb0_years, age[148L], age[155L]), c(4, 10, 20, 4)),
+               "PAR recent-period controls differ from report/validate.R.")
+  c(recent_depletion = "2021-2024 / 2014-2023",
+    sb_recent_sbmsy = "2021-2024", f_recent_fmsy = "2020-2023")
+}
+
+reference_values <- function(result, derived, stock, endpoints, seed) {
+  years <- 1952:2024
+  q <- result$derived_quantities
+  require_true(is.data.frame(q) && all(c("seed", "year", "adult_biomass",
+      "spawning_potential", "depletion") %in% names(q)) && nrow(q) == 73L &&
+      identical(as.numeric(q$year), as.numeric(years)) && all(q$seed == seed),
+      "Saved annual model/years differ.")
+  for (field in c("adult_biomass", "spawning_potential", "depletion")) {
+    require_true(is.numeric(q[[field]]) && all(is.finite(q[[field]]) & q[[field]] > 0),
+                 paste("Invalid saved annual", field))
+  }
+  require_true(all(abs(q$adult_biomass / 1000 - q$spawning_potential) <=
+                   1e-10 * pmax(1, abs(q$spawning_potential))), "Saved SB units differ.")
+  annual_reference <- function(data, column, label) {
+    require_true(is.data.frame(data) && all(c("seed", "year", column, "value",
+      "is_reference", "is_base_fit_reference") %in% names(data)), "Incomplete annual reference.")
+    x <- data[data$seed %in% seed & data[[column]] %in% label, , drop = FALSE]
+    require_true(nrow(x) == 73L && identical(as.numeric(x$year), as.numeric(years)) &&
+      all(!x$is_reference & !x$is_base_fit_reference) && all(is.finite(x$value) & x$value > 0),
+      paste("Invalid annual reference:", label))
+    x$value
+  }
+  compare <- function(x, y, label) {
+    require_true(all(abs(x-y) <= 1e-10 * pmax(1, abs(y))), paste("Saved references differ:", label))
+  }
+  compare(q$spawning_potential, annual_reference(derived, "quantity", "Spawning potential"), "SB")
+  compare(q$depletion, annual_reference(derived, "quantity", "Depletion"), "depletion")
+  compare(q$depletion, annual_reference(stock, "metric", "annual_depletion"), "stock-status depletion")
+  metrics <- c("recent_depletion", "sb_recent_sbmsy", "f_recent_fmsy")
+  require_true(is.data.frame(endpoints) && all(c("seed", "metric", "unit", "window", "value",
+      "is_reference", "is_base_fit_reference") %in% names(endpoints)), "Incomplete endpoint reference.")
+  e <- endpoints[endpoints$seed %in% seed, , drop = FALSE]
+  require_true(nrow(e) == 3L && !anyDuplicated(e$metric) && setequal(e$metric, metrics) &&
+      all(!e$is_reference & !e$is_base_fit_reference) && all(e$unit == "ratio") &&
+      all(is.finite(e$value) & e$value > 0), "Invalid saved endpoints.")
+  e <- e[match(metrics, e$metric), , drop = FALSE]
+  require_true(identical(as.character(e$window), c("2021-2024 / 2014-2023", "2021-2024", "2020-2023")),
+      "Saved endpoint windows differ.")
+  sb0 <- q$adult_biomass / q$depletion
+  expected_depletion <- mean(q$adult_biomass[years %in% 2021:2024]) / mean(sb0[years %in% 2014:2023])
+  compare(expected_depletion, e$value[e$metric == "recent_depletion"], "recent depletion")
+  list(annual = data.frame(year = years, adult_biomass = q$adult_biomass,
+      adult_biomass_nofish = sb0, spawning_potential = q$spawning_potential, depletion = q$depletion),
+       endpoints = e)
+}
+
+compare_central <- function(report, reference, seed) {
+  expected <- reference$annual; actual <- report$annual
+  require_true(identical(actual$year, expected$year), "Native annual years differ.")
+  annual_diff <- 0
+  for (field in c("adult_biomass", "adult_biomass_nofish", "spawning_potential", "depletion")) {
+    delta <- abs(actual[[field]] - expected[[field]])
+    require_true(all(delta <= 1e-10 * pmax(1, abs(expected[[field]]))),
+                 paste("Native annual values differ:", field))
+    annual_diff <- max(annual_diff, delta)
+  }
+  # Match report/validate.R: ratio of means, and scalar native BMSY/Fmult.
+  sb_recent <- mean(actual$adult_biomass[actual$year %in% 2021:2024])
+  sb0_recent <- mean(actual$adult_biomass_nofish[actual$year %in% 2014:2023])
+  values <- c(recent_depletion = sb_recent / sb0_recent,
+              sb_recent_sbmsy = sb_recent / report$bmsy, f_recent_fmsy = 1 / report$fmult)
+  e <- reference$endpoints
+  delta <- abs(unname(values) - e$value)
+  require_true(all(delta <= 5e-7 * pmax(1, abs(e$value))), "Native management endpoints differ.")
+  e$native_value <- unname(values); e$abs_diff <- delta
+  actual$seed <- seed
+  list(annual = actual, endpoints = e, annual_max_abs_diff = annual_diff,
+       endpoint_max_abs_diff = max(delta))
+}
+
+native_log <- function(path, parameters = 1997) {
+  lines <- readLines(path, warn = FALSE)
+  controls <- grep("^[[:space:]]*optfile\\.cpp[[:space:]]+", lines, value = TRUE)
+  ceilings <- 0L; convergence <- 0L
+  for (line in controls) {
+    fields <- strsplit(trimws(sub("^[[:space:]]*optfile\\.cpp[[:space:]]+", "", line)), "[[:space:]]+")[[1L]]
+    require_true(length(fields) >= 3L && all(grepl("^[-+]?[0-9]+$", fields[1:3])), "Malformed native control.")
+    control <- as.numeric(fields[1:3])
+    if (identical(control[1:2], c(1, 1))) {
+      require_true(control[3L] == 1, "Native function-evaluation ceiling differs."); ceilings <- ceilings + 1L
+    }
+    if (identical(control[1:2], c(1, 50))) {
+      require_true(control[3L] == 0, "Native convergence control differs."); convergence <- convergence + 1L
+    }
+  }
+  counters <- lines[grepl("variables;", lines, fixed = TRUE) & grepl("function[[:space:]]+evaluation", lines)]
+  pattern <- "^[[:space:]]*([0-9]+)[[:space:]]+variables;[[:space:]]+iteration[[:space:]]+([0-9]+);[[:space:]]+function[[:space:]]+evaluation[[:space:]]+([0-9]+)[[:space:]]*$"
+  for (line in counters) {
+    line <- sub("^[[:space:]]*Initial statistics:[[:space:]]*", "", line)
+    fields <- regmatches(line, regexec(pattern, line))[[1L]]
+    require_true(length(fields) == 4L && identical(as.numeric(fields[2:4]), c(parameters, 0, 0)),
+                 "Native parameter/iteration/function counter differs.")
+  }
+  require_true(ceilings == 1L && convergence == 1L && length(counters) > 0L,
+               "Native controls or zero-counter evidence absent.")
+  totals <- grep("^[[:space:]]*Total func[[:space:]]+[^[:space:]]+[[:space:]]*$", lines, value = TRUE)
+  require_true(length(totals) > 0L, "Native objective absent.")
+  objective <- suppressWarnings(as.numeric(sub("^[[:space:]]*Total func[[:space:]]+", "", totals[1L])))
+  require_true(length(objective) == 1L && is.finite(objective), "Non-finite native objective.")
+  list(objective = objective, counters = counters)
+}
+
 main <- function() {
   args <- commandArgs(trailingOnly = TRUE)
   if (length(args) != 2L || !grepl("^[0-9]+$", args[[1L]])) {
@@ -101,7 +262,9 @@ main <- function() {
                    paste0("jitter_seed_", seed), paste0("jittered_out_", seed, ".par"))
   result_file <- file.path(dirname(par), "jitter_result.rds")
   reference <- file.path(mfcl_dir, "selectivity-models", "F2.csv")
-  sources <- c(file.path(mfcl_dir, common), par, result_file, reference)
+  annual_files <- file.path(repo, "data", "diagnostic",
+    c("jitter-derived-timeseries.rds", "jitter-stock-status-timeseries.rds", "jitter-stock-status-endpoints.rds"))
+  sources <- c(file.path(mfcl_dir, common), par, result_file, reference, annual_files)
   if (!all(file.exists(sources)) || any(vapply(sources, function(p) {
     isTRUE(file.info(p)$isdir) || has_symlink(p)
   }, logical(1L)))) stop("The original source bundle is incomplete.", call. = FALSE)
@@ -139,6 +302,9 @@ main <- function() {
   }
   assert_fixed_steepness(par)
   assert_par_selectivity(par, selectivity)
+  report_windows(par)
+  saved <- reference_values(result, readRDS(annual_files[1L]),
+    readRDS(annual_files[2L]), readRDS(annual_files[3L]), seed)
 
   if (!dir.create(output, mode = "0700")) stop("Could not reserve the new OUT directory.")
   if (!all(file.copy(file.path(mfcl_dir, common), output, copy.mode = TRUE)) ||
@@ -148,13 +314,13 @@ main <- function() {
   staged <- c(file.path(output, common), file.path(output, "input.par"))
   staged_sha <- unname(vapply(staged, sha256_file, character(1L)))
   if (!identical(staged_sha, before[seq_along(staged)])) stop("Staged input hashes differ.")
-  controls <- c("1 1 0", "1 190 1", "1 246 1")
+  controls <- c("1 1 1", "1 50 0", "1 246 1")
   writeLines(controls, file.path(output, "controls.txt"), useBytes = TRUE)
   setwd(output)
   status <- as.integer(system2(file.path(output, "mfclo64"),
       c("bet.frq", "input.par", "evaluated.par", "-file", "-"),
       stdout = file.path(output, "mfcl.log"), stderr = file.path(output, "mfcl.log"),
-      input = controls))
+      input = controls, timeout = 180L))
   setwd(repo)
   evaluated <- file.path(output, "evaluated.par")
   rep <- file.path(output, "plot-evaluated.par.rep")
@@ -164,9 +330,8 @@ main <- function() {
       !identical(unname(vapply(sources, sha256_file, character(1L))), before)) {
     stop("Native outputs failed, or original/staged inputs changed.", call. = FALSE)
   }
-  totals <- grep("^[[:space:]]*Total func[[:space:]]+",
-                 readLines(file.path(output, "mfcl.log"), warn = FALSE), value = TRUE)
-  observed <- suppressWarnings(as.numeric(sub(".*Total func[[:space:]]+", "", tail(totals, 1L))))
+  logged <- native_log(file.path(output, "mfcl.log"))
+  observed <- logged$objective
   evaluated_obj <- par_scalar(evaluated, "# Objective function value")
   if (length(observed) != 1L || !is.finite(observed) ||
       abs(observed - expected_obj) > 1e-6 || abs(evaluated_obj - expected_obj) > 1e-6 ||
@@ -175,16 +340,29 @@ main <- function() {
   }
   assert_fixed_steepness(evaluated)
   assert_par_selectivity(evaluated, selectivity)
+  report_windows(evaluated)
+  compared <- compare_central(central_rep(rep), saved, seed)
+  utils::write.csv(compared$annual, file.path(output, "central-results.csv"), row.names = FALSE)
+  utils::write.csv(compared$endpoints, file.path(output, "management-quantities.csv"), row.names = FALSE)
+  writeLines(logged$counters, file.path(output, "native-counters.txt"), useBytes = TRUE)
   utils::write.csv(data.frame(path = basename(staged), sha256 = staged_sha),
                    file.path(output, "input-checksums.csv"), row.names = FALSE)
   utils::write.csv(data.frame(seed = seed, native_status = status,
       input_par_sha256 = sha256_file(par), expected_objective = expected_obj,
       native_objective = observed, evaluated_objective = evaluated_obj,
-      objective_abs_diff = abs(observed - expected_obj), mfcl_sha256 = expected_engine,
+      objective_abs_diff = abs(observed - expected_obj),
+      annual_max_abs_diff = compared$annual_max_abs_diff,
+      endpoint_max_abs_diff = compared$endpoint_max_abs_diff,
+      annual_rows = nrow(compared$annual), endpoint_rows = nrow(compared$endpoints),
+      counter_records = length(logged$counters), iterations = 0L, function_evaluations = 0L,
+      source_and_staged_inputs_unchanged = TRUE,
+      reference_manifest_sha256 = sha256_file(manifest),
+      saved_result_sha256 = sha256_file(result_file),
+      mfcl_sha256 = expected_engine,
       evaluated_par_sha256 = sha256_file(evaluated), plot_rep_sha256 = sha256_file(rep),
-      scope = "Objective, PAR metadata and nonempty REP; B0/full REP/Hessian/projections unverified"),
+      scope = "Objective, zero counters, annual SB/SBF0/depletion and report endpoints; whole REP/MSY yield/Hessian/projections unverified"),
       file.path(output, "native-check.csv"), row.names = FALSE)
   message("Saved seed ", seed, " evaluated; outputs retained in ", output)
 }
 
-main()
+if (sys.nframe() == 0L) main()
