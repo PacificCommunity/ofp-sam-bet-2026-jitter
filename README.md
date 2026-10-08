@@ -32,12 +32,15 @@ stock-status endpoints. R and Linux x86-64 are required. Whole REP, MSY yield,
 Hessian and projection identity remain unverified. `make native-check` retains
 the earlier objective-only check of all 25 PARs.
 
-For independent refits, prepare the original starts with pinned mfclkit:
+For independent refits, prepare the original starts with pinned mfclkit in
+the private Docker image described in the reproduction instructions:
 
 ```sh
 make prepare OUT=/absolute/fresh/bet-jitter-prepare
 ```
 
+This runs native Phases 0–1 to rebuild the Phase-1 baseline and prepares the
+starts, then stops before the 25 Phase 2–11 fits.
 Use `make refit OUT=/absolute/fresh/bet-jitter-refit` to run all 25 fits.
 
 See [reproduction instructions](docs/reproduction.md) for the pinned runtime,

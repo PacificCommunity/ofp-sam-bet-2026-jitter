@@ -31,8 +31,8 @@
     {
       "path": "README.md",
       "mode": "100644",
-      "git_blob": "c809e649ad9acbc4c92fcbc74fded0c8ea60ffed",
-      "sha256": "04fdda45fd4143d5e9e198820dab0ff5c3e5af27d668eaa44b63d45046afd059"
+      "git_blob": "866275e2cab56dfc12285ed110e9f7cf9a713089",
+      "sha256": "4567812773fef126e7b4b598e1ec542257d004d806b7748ac06299e2e6916565"
     },
     {
       "path": "data/SHA256SUMS",
@@ -700,6 +700,14 @@
       "expected_git_blob": "27d30bf4e30baf1c7fbfe35da6b7786918a3d776",
       "exact_added_prefix": "[![Preservation checks](https://github.com/PacificCommunity/ofp-sam-bet-2026-jitter/actions/workflows/verify-preserved-results.yml/badge.svg?branch=main)](https://github.com/PacificCommunity/ofp-sam-bet-2026-jitter/actions/workflows/verify-preserved-results.yml?query=branch%3Amain)\n\n",
       "authorization": "Task-scoped human instruction: CI\ub41c\uac83\ub4e4\uc740 \ub9ac\ub4dc\ubbf8\uc5d0 \uadf8 \uccb4\ud06c\ubc43\uc9c0\ub098 \uc774\ub7f0\uac70\ub3c4 \uc880 \ub123\uc5b4\uc8fc\uba74 \uc88b\uaca0\ub2e4"
+    },
+    {
+      "path": "README.md",
+      "reason": "Clarify existing reader commands, runtime requirements and full-fit scope; retain scientific content, result links and heading anchors.",
+      "previous_sha256": "04fdda45fd4143d5e9e198820dab0ff5c3e5af27d668eaa44b63d45046afd059",
+      "previous_git_blob": "c809e649ad9acbc4c92fcbc74fded0c8ea60ffed",
+      "expected_sha256": "4567812773fef126e7b4b598e1ec542257d004d806b7748ac06299e2e6916565",
+      "expected_git_blob": "866275e2cab56dfc12285ed110e9f7cf9a713089"
     }
   ]
 }
